@@ -1,0 +1,41 @@
+{
+  "name": "ezpe",
+  "version": "0.1.0",
+  "description": "Backend-only scaffold for learning AI through Pokemon Champions battle-state analysis.",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/api/server.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --config vitest.config.ts --passWithNoTests"
+  },
+  "keywords": [
+    "pokemon",
+    "ai",
+    "battle-simulator",
+    "vgc"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BHEAU-Projects/EZPE.git"
+  },
+  "bugs": {
+    "url": "https://github.com/BHEAU-Projects/EZPE/issues"
+  },
+  "homepage": "https://github.com/BHEAU-Projects/EZPE#readme",
+  "dependencies": {
+    "@pkmn/data": "0.10.11",
+    "@pkmn/dex": "0.10.11",
+    "fastify": "5.11.2",
+    "pokemon-showdown": "0.11.11",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "26.1.2",
+    "eslint": "10.8.0",
+    "tsx": "4.23.9",
+    "typescript": "7.0.2",
+    "vitest": "4.1.10"
+  }
+}
