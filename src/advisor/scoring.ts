@@ -1,6 +1,7 @@
 import type { ExplanationTag, ScoreBreakdown } from "../domain/advice.js";
 import type { PlayerSide } from "../domain/battle-state.js";
 import type { SingleTurnSimulationResult } from "../sim/showdown-adapter.js";
+import { scoringConfigStore, type ScoringConfig } from "../config/scoring-config.js";
 
 export interface ScoredOutcome {
   score: number;
@@ -11,14 +12,17 @@ export interface ScoredOutcome {
 
 export function scoreSingleTurnOutcome(
   simulation: SingleTurnSimulationResult,
-  playerSide: PlayerSide
+  playerSide: PlayerSide,
+  config: ScoringConfig = scoringConfigStore.get()
 ): ScoredOutcome {
   const opponentSide = playerSide === "p1" ? "p2" : "p1";
   const damageDealt = simulation.summary.damageTakenBySide[opponentSide];
   const damageTaken = simulation.summary.damageTakenBySide[playerSide];
   const kosDealt = simulation.summary.kosTakenBySide[opponentSide];
   const kosTaken = simulation.summary.kosTakenBySide[playerSide];
-  const riskPenalty = kosTaken * 120 + damageTaken;
+  const riskPenalty =
+    kosTaken * config.weights.koTakenPenalty +
+    damageTaken * config.weights.damageTakenPenalty;
 
   const breakdown: ScoreBreakdown = {
     damageDealt,
@@ -30,8 +34,9 @@ export function scoreSingleTurnOutcome(
     riskPenalty
   };
 
-  const score = damageDealt + kosDealt * 100 - riskPenalty;
-  const explanationTags = buildExplanationTags(breakdown);
+  const score =
+    damageDealt * config.weights.damageDealt + kosDealt * config.weights.koDealt - riskPenalty;
+  const explanationTags = buildExplanationTags(breakdown, config);
 
   return {
     score,
@@ -47,11 +52,14 @@ function sumRemainingHp(simulation: SingleTurnSimulationResult, side: PlayerSide
     .reduce((totalHp, pokemon) => totalHp + pokemon.remainingHp, 0);
 }
 
-function buildExplanationTags(breakdown: ScoreBreakdown): ExplanationTag[] {
+function buildExplanationTags(
+  breakdown: ScoreBreakdown,
+  config: ScoringConfig
+): ExplanationTag[] {
   const tags: ExplanationTag[] = [];
 
   if (breakdown.kosDealt > 0) tags.push("confirmed-ko");
-  if (breakdown.damageDealt >= 50) tags.push("heavy-damage");
+  if (breakdown.damageDealt >= config.thresholds.heavyDamage) tags.push("heavy-damage");
   if (breakdown.damageTaken > 0) tags.push("took-damage");
   if (breakdown.kosTaken > 0) tags.push("high-risk");
   if (breakdown.damageTaken === 0 && breakdown.kosTaken === 0) tags.push("low-risk");

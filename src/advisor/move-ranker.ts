@@ -6,6 +6,7 @@ import type {
 } from "../domain/advice.js";
 import type { BattleState, LegalAction, PlayerSide } from "../domain/battle-state.js";
 import { pokemonDataService } from "../data/pokemon-data-service.js";
+import { scoringConfigStore } from "../config/scoring-config.js";
 import {
   buildShowdownChoiceFromLegalActions,
   createSingleTurnSimulationInputFromBattleState,
@@ -18,6 +19,7 @@ export function rankMoves(battleState: BattleState, input: RankMovesInput): Advi
   const actionPlans = generateActionPlansForSide(battleState, battleState.playerSide);
   const opponentPlans = getOpponentPlans(battleState, input);
   const seeds = getSimulationSeeds(input);
+  const scoringConfig = scoringConfigStore.get();
   const scoredResults = actionPlans.map((actionPlan) => {
     const branches = opponentPlans.flatMap((opponentPlan) =>
       seeds.map((seed) => {
@@ -31,7 +33,11 @@ export function rankMoves(battleState: BattleState, input: RankMovesInput): Advi
         return {
           opponentPlan,
           simulation,
-          scoredOutcome: scoreSingleTurnOutcome(simulation, battleState.playerSide)
+          scoredOutcome: scoreSingleTurnOutcome(
+            simulation,
+            battleState.playerSide,
+            scoringConfig
+          )
         };
       })
     );
@@ -42,7 +48,9 @@ export function rankMoves(battleState: BattleState, input: RankMovesInput): Advi
     const expectedScore = average(scores);
     const worstCaseScore = Math.min(...scores);
     const bestCaseScore = Math.max(...scores);
-    const aggregateScore = expectedScore * 0.7 + worstCaseScore * 0.3;
+    const aggregateScore =
+      expectedScore * scoringConfig.opponentAggregation.expectedWeight +
+      worstCaseScore * scoringConfig.opponentAggregation.worstCaseWeight;
 
     return {
       actionPlan,
@@ -71,7 +79,11 @@ export function rankMoves(battleState: BattleState, input: RankMovesInput): Advi
       rank: index + 1,
       actionPlan: result.actionPlan,
       score: result.score,
-      confidence: calculateConfidence(result.score, nextBestScore),
+      confidence: calculateConfidence(
+        result.score,
+        nextBestScore,
+        scoringConfig.confidenceScoreGap
+      ),
       explanationTags: result.explanationTags,
       outcomeSummary: result.outcomeSummary,
       debug: {
@@ -236,6 +248,6 @@ function isValidCombinedPlan(actions: LegalAction[]): boolean {
   return actions.filter((action) => action.type === "move" && action.specialMechanic).length <= 1;
 }
 
-function calculateConfidence(score: number, nextBestScore: number): number {
-  return Math.min(1, Math.max(0, (score - nextBestScore) / 100));
+function calculateConfidence(score: number, nextBestScore: number, scoreGap: number): number {
+  return Math.min(1, Math.max(0, (score - nextBestScore) / scoreGap));
 }

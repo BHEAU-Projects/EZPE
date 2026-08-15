@@ -1,0 +1,88 @@
+import { readFileSync, statSync } from "node:fs";
+import { resolve } from "node:path";
+
+import { z } from "zod";
+
+export const scoringConfigSchema = z
+  .object({
+    version: z.literal(1),
+    weights: z
+      .object({
+        damageDealt: z.number().min(0),
+        damageTakenPenalty: z.number().min(0),
+        koDealt: z.number().min(0),
+        koTakenPenalty: z.number().min(0)
+      })
+      .strict(),
+    thresholds: z
+      .object({
+        heavyDamage: z.number().min(0)
+      })
+      .strict(),
+    opponentAggregation: z
+      .object({
+        expectedWeight: z.number().min(0).max(1),
+        worstCaseWeight: z.number().min(0).max(1)
+      })
+      .strict()
+      .refine(
+        (weights) => Math.abs(weights.expectedWeight + weights.worstCaseWeight - 1) < 1e-9,
+        { message: "Opponent aggregation weights must add up to 1." }
+      ),
+    confidenceScoreGap: z.number().positive()
+  })
+  .strict();
+
+export type ScoringConfig = z.infer<typeof scoringConfigSchema>;
+
+export const defaultScoringConfigPath = resolve(process.cwd(), "config", "scoring.json");
+
+export function parseScoringConfig(value: unknown): ScoringConfig {
+  return scoringConfigSchema.parse(value);
+}
+
+export function loadScoringConfig(path = defaultScoringConfigPath): ScoringConfig {
+  let parsedJson: unknown;
+
+  try {
+    parsedJson = JSON.parse(readFileSync(path, "utf8"));
+  } catch (error) {
+    throw new Error(`Could not read scoring config at ${path}: ${formatError(error)}`);
+  }
+
+  const result = scoringConfigSchema.safeParse(parsedJson);
+  if (!result.success) {
+    throw new Error(`Invalid scoring config at ${path}: ${z.prettifyError(result.error)}`);
+  }
+
+  return result.data;
+}
+
+export class ScoringConfigStore {
+  private cachedConfig: ScoringConfig | undefined;
+  private cachedModifiedAt = -1;
+
+  constructor(readonly path = defaultScoringConfigPath) {}
+
+  get(): ScoringConfig {
+    const modifiedAt = statSync(this.path).mtimeMs;
+
+    if (!this.cachedConfig || modifiedAt !== this.cachedModifiedAt) {
+      this.cachedConfig = loadScoringConfig(this.path);
+      this.cachedModifiedAt = modifiedAt;
+    }
+
+    return this.cachedConfig;
+  }
+
+  invalidate(): void {
+    this.cachedConfig = undefined;
+    this.cachedModifiedAt = -1;
+  }
+}
+
+function formatError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+export const scoringConfigStore = new ScoringConfigStore();

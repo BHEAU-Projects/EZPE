@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "weights": {
+    "damageDealt": 1,
+    "damageTakenPenalty": 1,
+    "koDealt": 100,
+    "koTakenPenalty": 120
+  },
+  "thresholds": {
+    "heavyDamage": 50
+  },
+  "opponentAggregation": {
+    "expectedWeight": 0.7,
+    "worstCaseWeight": 0.3
+  },
+  "confidenceScoreGap": 100
+}

@@ -18,6 +18,12 @@ npm test
 
 Use `typecheck` and `test` after changing schemas, mechanics, simulation, or advisor behavior.
 
+## Scoring Configuration
+
+All subjective advisor grading lives in `config/scoring.json`. Adjust its damage, KO,
+risk, opponent-aggregation, threshold, and confidence values without editing TypeScript.
+The running process reloads the validated file when its modification time changes.
+
 ## Planned Input Concept
 
 The first real version should accept structured JSON instead of screenshots or replay text. The input should describe:
