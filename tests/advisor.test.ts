@@ -2,45 +2,37 @@ import { describe, expect, it } from "vitest";
 
 import { singleTurnBattleState, singleTurnChoices } from "../src/fixtures/single-turn-battle-state.js";
 import { generateActionPlans, rankMoves } from "../src/advisor/move-ranker.js";
-import type { BattleState } from "../src/domain/battle-state.js";
-
-function battleStateWithAlternativePikachuAction(): BattleState {
-  const battleState = structuredClone(singleTurnBattleState);
-
-  battleState.legalActions = [
-    ...battleState.legalActions,
-    {
-      type: "move",
-      activeSlot: "p1a",
-      moveId: "protect",
-      targetSlot: "self",
-      flags: {}
-    }
-  ];
-
-  return battleState;
-}
 
 describe("move ranker", () => {
   it("generates complete action plans for the player's active Pokemon", () => {
-    const actionPlans = generateActionPlans(battleStateWithAlternativePikachuAction());
+    const battleState = structuredClone(singleTurnBattleState);
+    battleState.legalActions = [];
+    const actionPlans = generateActionPlans(battleState);
 
-    expect(actionPlans).toHaveLength(2);
-    expect(actionPlans.map((plan) => plan.showdownChoice)).toEqual([
-      "move thunderbolt 1, move tackle 1",
-      "move protect, move tackle 1"
-    ]);
+    expect(actionPlans).toHaveLength(9);
+    expect(actionPlans.map((plan) => plan.showdownChoice)).toContain(
+      "move thunderbolt 1, move tackle 1"
+    );
+    expect(actionPlans.map((plan) => plan.showdownChoice)).toContain(
+      "move protect, move protect"
+    );
   });
 
   it("ranks a super-effective KO plan above a weaker defensive plan", () => {
-    const advice = rankMoves(battleStateWithAlternativePikachuAction(), {
+    const advice = rankMoves(singleTurnBattleState, {
       opponentChoice: singleTurnChoices.p2Choice,
       seed: [1, 2, 3, 4]
     });
+    const defensivePlan = advice.find(
+      (result) => result.actionPlan.showdownChoice === "move protect, move protect"
+    );
 
-    expect(advice).toHaveLength(2);
-    expect(advice[0].actionPlan.showdownChoice).toBe("move thunderbolt 1, move tackle 1");
-    expect(advice[0].score).toBeGreaterThan(advice[1].score);
+    expect(advice).toHaveLength(9);
+    expect(advice[0].actionPlan.actions.some(
+      (action) => action.type === "move" && action.moveId === "thunderbolt"
+    )).toBe(true);
+    expect(defensivePlan).toBeDefined();
+    expect(advice[0].score).toBeGreaterThan(defensivePlan!.score);
     expect(advice[0].explanationTags).toContain("confirmed-ko");
     expect(advice[0].debug.scoreBreakdown).toMatchObject({
       damageDealt: expect.any(Number),

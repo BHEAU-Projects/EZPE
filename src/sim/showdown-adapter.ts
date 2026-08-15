@@ -177,7 +177,11 @@ export function createSingleTurnSimulationInputFromBattleState(
   };
 }
 
-export function buildShowdownChoiceFromLegalActions(actions: LegalAction[], side: PlayerSide): string {
+export function buildShowdownChoiceFromLegalActions(
+  actions: LegalAction[],
+  side: PlayerSide,
+  teamState?: TeamState
+): string {
   const sideActions = actions
     .filter((action) => action.activeSlot.startsWith(side))
     .sort((a, b) => a.activeSlot.localeCompare(b.activeSlot));
@@ -189,12 +193,23 @@ export function buildShowdownChoiceFromLegalActions(actions: LegalAction[], side
   return sideActions
     .map((action) => {
       if (action.type === "switch") {
-        return `switch ${action.benchSlot + 1}`;
+        const benchIndex = teamState
+          ? [...teamState.bench]
+              .sort((a, b) => a.benchSlot - b.benchSlot)
+              .findIndex((pokemon) => pokemon.benchSlot === action.benchSlot)
+          : -1;
+        const teamPosition =
+          teamState && benchIndex >= 0
+            ? teamState.active.length + benchIndex + 1
+            : action.benchSlot + 1;
+        return `switch ${teamPosition}`;
       }
 
       const targetLoc = toShowdownTargetLocation(action.activeSlot, action.targetSlot);
 
-      return targetLoc === null ? `move ${action.moveId}` : `move ${action.moveId} ${targetLoc}`;
+      const choice =
+        targetLoc === null ? `move ${action.moveId}` : `move ${action.moveId} ${targetLoc}`;
+      return `${choice}${toShowdownSpecialMechanicSuffix(action.specialMechanic?.kind)}`;
     })
     .join(", ");
 }
@@ -230,6 +245,7 @@ export function simulateSingleTurn(input: SingleTurnSimulationInput): SingleTurn
     const initialState = input.battleState
       ? hydrateBattleState(battle, input.battleState)
       : captureHydratedBattleState(battle);
+    if (input.battleState) battle.makeRequest("move");
 
     const initialHpBySlot = captureActiveHp(battle);
 
@@ -257,10 +273,59 @@ export function simulateSingleTurn(input: SingleTurnSimulationInput): SingleTurn
   }
 }
 
+export function createHydratedBattleFromState(
+  battleState: BattleState,
+  seed?: SingleTurnSimulationInput["seed"]
+): Battle {
+  const battle = new Battle({
+    formatid: getShowdownFormatIdForRegulation(battleState.regulationId) as never,
+    seed: toShowdownSeed(seed),
+    strictChoices: true
+  });
+
+  try {
+    battle.setPlayer("p1", { name: "Player 1", team: toShowdownTeam(battleState.teams.p1) });
+    battle.setPlayer("p2", { name: "Player 2", team: toShowdownTeam(battleState.teams.p2) });
+
+    if (battle.requestState === "teampreview") {
+      battle.makeChoices(
+        defaultTeamPreviewChoice(battleState.teams.p1.active.length),
+        defaultTeamPreviewChoice(battleState.teams.p2.active.length)
+      );
+    }
+
+    if (battle.requestState !== "move") {
+      throw new Error(`Expected a move request, received ${battle.requestState || "none"}.`);
+    }
+
+    hydrateBattleState(battle, battleState);
+    battle.makeRequest("move");
+    return battle;
+  } catch (error) {
+    battle.destroy();
+    throw error;
+  }
+}
+
 function defaultTeamPreviewChoice(activeCount: number): string {
   const selectedSlots = Array.from({ length: activeCount }, (_, index) => index + 1).join("");
 
   return `team ${selectedSlots}`;
+}
+
+function toShowdownSpecialMechanicSuffix(kind: string | undefined): string {
+  switch (kind) {
+    case "megaevolution":
+      return " mega";
+    case "megaevolutionx":
+      return " megax";
+    case "megaevolutiony":
+      return " megay";
+    case "terastallization":
+      return " terastallize";
+    default:
+      return "";
+  }
 }
 
 function toShowdownSeed(seed: SingleTurnSimulationInput["seed"]): ShowdownSeed | undefined {

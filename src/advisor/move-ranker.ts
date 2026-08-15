@@ -6,6 +6,7 @@ import {
   simulateSingleTurn
 } from "../sim/showdown-adapter.js";
 import { scoreSingleTurnOutcome } from "./scoring.js";
+import { generateLegalActions } from "./legal-action-generator.js";
 
 export function rankMoves(battleState: BattleState, input: RankMovesInput): AdviceResult[] {
   const actionPlans = generateActionPlans(battleState);
@@ -43,10 +44,11 @@ export function rankMoves(battleState: BattleState, input: RankMovesInput): Advi
 export function generateActionPlans(battleState: BattleState): ActionPlan[] {
   const playerSide = battleState.playerSide;
   const activeSlots = battleState.teams[playerSide].active.map((pokemon) => pokemon.slot).sort();
+  const legalActions = generateLegalActions(battleState, playerSide);
   const actionsBySlot = new Map(
     activeSlots.map((slot) => [
       slot,
-      battleState.legalActions.filter((action) => action.activeSlot === slot)
+      legalActions.filter((action) => action.activeSlot === slot)
     ])
   );
 
@@ -56,12 +58,18 @@ export function generateActionPlans(battleState: BattleState): ActionPlan[] {
     }
   }
 
-  return cartesianProduct(activeSlots.map((slot) => actionsBySlot.get(slot)!)).map((actions) => ({
-    id: actions.map(formatActionId).join("|"),
-    side: playerSide,
-    actions,
-    showdownChoice: buildShowdownChoiceFromLegalActions(actions, playerSide)
-  }));
+  return cartesianProduct(activeSlots.map((slot) => actionsBySlot.get(slot)!))
+    .filter(isValidCombinedPlan)
+    .map((actions) => ({
+      id: actions.map(formatActionId).join("|"),
+      side: playerSide,
+      actions,
+      showdownChoice: buildShowdownChoiceFromLegalActions(
+        actions,
+        playerSide,
+        battleState.teams[playerSide]
+      )
+    }));
 }
 
 function simulateActionPlan(
@@ -103,7 +111,16 @@ function formatActionId(action: LegalAction): string {
     return `${action.activeSlot}:switch:${action.speciesId}:${action.benchSlot}`;
   }
 
-  return `${action.activeSlot}:move:${action.moveId}:${action.targetSlot}`;
+  return `${action.activeSlot}:move:${action.moveId}:${action.targetSlot}:${action.specialMechanic?.kind ?? "standard"}`;
+}
+
+function isValidCombinedPlan(actions: LegalAction[]): boolean {
+  const switchSlots = actions
+    .filter((action) => action.type === "switch")
+    .map((action) => action.benchSlot);
+  if (new Set(switchSlots).size !== switchSlots.length) return false;
+
+  return actions.filter((action) => action.type === "move" && action.specialMechanic).length <= 1;
 }
 
 function calculateConfidence(score: number, nextBestScore: number): number {

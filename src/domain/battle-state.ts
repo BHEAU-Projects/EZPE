@@ -268,7 +268,7 @@ export const battleStateSchema = z
       })
       .strict(),
     field: fieldStateSchema,
-    legalActions: z.array(legalActionSchema).min(1)
+    legalActions: z.array(legalActionSchema).default([])
   })
   .strict()
   .superRefine((battleState, ctx) => {
@@ -325,6 +325,7 @@ export const battleStateSchema = z
 
 export type BattleFormat = z.infer<typeof battleFormatSchema>;
 export type PlayerSide = z.infer<typeof playerSideSchema>;
+export type TargetSlot = z.infer<typeof targetSlotSchema>;
 export type StatTable = z.infer<typeof statTableSchema>;
 export type StatBoosts = z.infer<typeof statBoostsSchema>;
 export type ExactHp = z.infer<typeof exactHpSchema>;

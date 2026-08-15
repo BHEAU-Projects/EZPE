@@ -40,9 +40,13 @@ describe("battle session", () => {
       seed: [1, 2, 3, 4]
     });
 
-    expect(advice).toHaveLength(1);
+    expect(advice).toHaveLength(9);
     expect(advice[0].rank).toBe(1);
-    expect(advice[0].actionPlan.showdownChoice).toBe(singleTurnChoices.p1Choice);
+    expect(
+      advice[0].actionPlan.actions.some(
+        (action) => action.type === "move" && action.moveId === "thunderbolt"
+      )
+    ).toBe(true);
   });
 
   it("rejects invalid snapshot limits", () => {

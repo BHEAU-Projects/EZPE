@@ -202,10 +202,10 @@ describe("battleStateSchema", () => {
     expect(battleStateSchema.safeParse(state).success).toBe(false);
   });
 
-  it("rejects missing legal actions", () => {
+  it("defaults missing legal actions because they are derived later", () => {
     const { legalActions: _legalActions, ...state } = validBattleState;
 
-    expect(battleStateSchema.safeParse(state).success).toBe(false);
+    expect(battleStateSchema.parse(state).legalActions).toEqual([]);
   });
 
   it("rejects invalid move target shapes", () => {
