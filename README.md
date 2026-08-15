@@ -1,18 +1,20 @@
 # EZPE
 
-EZPE is a backend-only learning project for exploring AI through Pokemon Champions battle-state analysis.
+EZPE is a local learning project for exploring AI through Pokemon Champions battle-state analysis.
 
-The long-term goal is to accept a structured battle state from Pokemon Champions Doubles/VGC and return a ranked list of the best legal actions. Accuracy comes first: visual polish, frontend work, screenshot parsing, and automation can wait until the battle logic is trustworthy.
+The goal is to accept a structured battle state from Pokemon Champions Doubles/VGC and return a ranked list of the best legal actions. Accuracy comes first; the current browser screen is deliberately focused on rapid manual capture rather than visual polish or screenshot automation.
 
 ## Current Status
 
-The project currently has a validated battle-state contract, regulation snapshots, damage utilities, a single-turn Pokemon Showdown adapter, a first-pass move ranker, and an event-driven battle session. The API layer and live game-state capture are not implemented yet.
+The project has a validated battle-state contract, regulation and usage snapshots, accuracy-aware damage utilities, a single-turn Pokemon Showdown adapter, opponent-response ranking, an event-driven battle session, a terminal workflow, and a local Quick Capture browser screen.
 
 ## Planned Commands
 
 ```bash
 npm run dev
+npm run quick -- --state battle-session.json
 npm run cli -- --sample
+npm run data:refresh:moves
 npm run typecheck
 npm test
 ```
@@ -38,14 +40,50 @@ To start from team exports, provide two Showdown-format files containing the fou
 selected Pokemon in battle order (two leads, then two bench Pokemon):
 
 ```bash
-npm run cli -- --player-team player.txt --opponent-team opponent.txt --regulation development
+npm run cli -- --player-team player.txt --opponent-team opponent.txt --regulation champions-m-b
 ```
 
-Inside the CLI, use `help` to list compact update and ranking commands.
+Inside the CLI, use `help` to list compact update and ranking commands. Record a newly revealed opponent move with `move p2a fakeout`.
+
+## Quick Capture Screen
+
+Start the local screen with sample data:
+
+```bash
+npm run dev
+```
+
+Then open `http://127.0.0.1:4173`. Start a real session from files with:
+
+```bash
+npm run quick -- --player-team player.txt --opponent-team opponent.txt --regulation champions-m-b
+```
+
+The screen provides direct controls for exact player HP, opponent HP percentages,
+status, revealed opponent moves, switches, boosts, items, abilities, side conditions,
+weather, terrain, Trick Room, Gravity, turn count, and ranked analysis.
+
+## Opponent Move Assumptions
+
+Opponent team imports use the four highest-usage moves for each Pokemon from the
+bundled high-ladder Regulation M-B snapshot. The snapshot is distilled from
+[Smogon usage statistics](https://www.smogon.com/stats/2026-06/chaos/gen9championsvgc2026regmb-1760.json)
+and is read locally during battle.
+
+Assumed and observed moves remain distinct in battle state. Recording a revealed
+move promotes it to observed and removes enough assumptions to keep a legal
+four-move simulation set. Refresh the offline snapshot outside a battle with:
+
+```bash
+npm run data:refresh:moves
+```
+
+The bundled snapshot covers 275 Pokemon and records its format, rating cutoff,
+data period, retrieval date, and source URL.
 
 ## Planned Input Concept
 
-The first real version should accept structured JSON instead of screenshots or replay text. The input should describe:
+The structured JSON input describes:
 
 - Battle format and Champions regulation id.
 - Both teams, active Pokemon, bench Pokemon, items, abilities, moves, tera/mega or Champions-specific mechanics when relevant.
@@ -64,9 +102,9 @@ HP is represented explicitly according to how it was observed:
 
 The simulator converts percentages to an estimated Showdown HP value only at the simulation boundary.
 
-## Planned Output Concept
+## Output Concept
 
-The analyzer should return ranked actions rather than one unexplained answer. Each result should include:
+The analyzer returns ranked actions rather than one unexplained answer. Each result includes:
 
 - Action name, target, and action type.
 - Numeric score and confidence.
@@ -79,4 +117,4 @@ The analyzer should return ranked actions rather than one unexplained answer. Ea
 2. Add a regulation layer for Pokemon Champions seasons, legal Pokemon, move legality, Mega availability, and Champions-specific overrides.
 3. Build a current-turn evaluator that ranks every legal action from a known board state.
 4. Add opponent-response simulation, then deeper search such as expectimax or Monte Carlo Tree Search.
-5. Only after the advisor is trusted, add replay parsing, screenshots/video, or frontend views.
+5. Validate recommendations against recorded games before adding screenshot or video capture.

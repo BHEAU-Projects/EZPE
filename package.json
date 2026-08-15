@@ -1,12 +1,13 @@
 {
   "name": "ezpe",
   "version": "0.1.0",
-  "description": "Backend-only scaffold for learning AI through Pokemon Champions battle-state analysis.",
+  "description": "Local Pokemon Champions battle-state advisor for learning AI and simulation.",
   "type": "module",
   "scripts": {
     "cli": "tsx src/cli/main.ts",
     "data:refresh:moves": "tsx scripts/refresh-usage-movesets.ts",
-    "dev": "tsx src/api/server.ts",
+    "dev": "tsx src/api/server.ts --sample",
+    "quick": "tsx src/api/server.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --config vitest.config.ts --passWithNoTests"
   },
