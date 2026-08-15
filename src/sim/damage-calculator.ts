@@ -15,6 +15,7 @@ export interface DamageCalculationInput {
 }
 
 export type DamageRange = readonly [minDamage: number, maxDamage: number];
+export type MoveAccuracy = number | true;
 
 export const damageRandomMultipliers = [
   0.85,
@@ -85,10 +86,21 @@ export function calculateDamage(input: DamageCalculationInput): DamageRange {
   return [rolls[0], rolls[rolls.length - 1]];
 }
 
-export function calculateExpectedDamage(damageValues: DamageRange | readonly number[]): number {
+export function calculateExpectedDamage(
+  damageValues: DamageRange | readonly number[],
+  accuracy: MoveAccuracy = true
+): number {
   if (damageValues.length === 0) {
     throw new RangeError("damageValues must contain at least one damage value.");
   }
 
-  return damageValues.reduce((sum, damage) => sum + damage, 0) / damageValues.length;
+  const hitChance = accuracy === true ? 1 : accuracy / 100;
+  if (!Number.isFinite(hitChance) || hitChance < 0 || hitChance > 1) {
+    throw new RangeError("accuracy must be true or a number from 0 to 100.");
+  }
+
+  const expectedDamageOnHit =
+    damageValues.reduce((sum, damage) => sum + damage, 0) / damageValues.length;
+
+  return expectedDamageOnHit * hitChance;
 }
