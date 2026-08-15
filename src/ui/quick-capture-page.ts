@@ -53,6 +53,9 @@ export const quickCapturePage = String.raw`<!doctype html>
     .chip { display: inline-flex; align-items: center; min-height: 25px; max-width: 100%; border: 1px solid #bdc7cf; border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 750; overflow-wrap: anywhere; }
     .chip.observed { background: #e5f4e8; border-color: #8dc69a; color: #215f2f; }
     .chip.assumed { background: #fff5d8; border-color: #d7bd6a; color: #6a5312; }
+    .move-list { display: grid; gap: 5px; margin-top: 10px; padding-top: 9px; border-top: 1px solid #dce2e7; }
+    .move-line { min-height: 30px; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #29343e; font-size: 12px; font-weight: 750; }
+    .pp-value { flex: 0 0 auto; min-width: 62px; text-align: center; background: #eaf2f8; border: 1px solid #a9bfd0; border-radius: 999px; padding: 3px 8px; color: #224b69; }
     details { margin-top: 10px; border-top: 1px solid #dce2e7; padding-top: 8px; }
     summary { color: #46525d; cursor: pointer; font-size: 12px; font-weight: 800; }
     .advanced-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-top: 8px; }
@@ -64,9 +67,15 @@ export const quickCapturePage = String.raw`<!doctype html>
     .rank-controls { display: grid; grid-template-columns: 90px 110px 130px; gap: 8px; align-items: end; }
     .advice-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding-top: 10px; }
     .advice-card { background: #ffffff; border: 1px solid #c7d0d8; border-left: 5px solid #2d8a49; border-radius: 6px; padding: 12px; min-width: 0; }
-    .advice-card h3 { margin: 0 0 7px; font-size: 14px; letter-spacing: 0; overflow-wrap: anywhere; }
+    .advice-card h3 { margin: 0 0 8px; font-size: 14px; letter-spacing: 0; overflow-wrap: anywhere; }
     .score { color: #245b35; font-weight: 800; font-size: 13px; }
-    .outcome { color: #4f5b66; font-size: 12px; line-height: 1.45; margin-top: 6px; }
+    .action-line { padding: 8px 0; border-top: 1px solid #dce2e7; }
+    .action-name { color: #17202a; font-size: 13px; font-weight: 800; overflow-wrap: anywhere; }
+    .damage-line { color: #4f5b66; font-size: 12px; line-height: 1.45; margin-top: 3px; }
+    .worst-case { display: none; margin-top: 12px; background: #fff8f0; border: 1px solid #dfb98c; border-left: 5px solid #c35b1f; border-radius: 6px; padding: 12px; }
+    .worst-case.visible { display: block; }
+    .worst-case h3 { margin: 0 0 4px; font-size: 14px; letter-spacing: 0; }
+    .worst-case .action-line { border-top-color: #ead4bb; }
     .status-line { min-height: 22px; color: #52606c; font-size: 12px; padding-top: 7px; }
     .status-line.error { color: #a12622; font-weight: 700; }
     @media (max-width: 1280px) {
@@ -126,11 +135,13 @@ export const quickCapturePage = String.raw`<!doctype html>
         </div>
       </div>
       <div class="advice-list" id="advice-list"></div>
+      <div class="worst-case" id="worst-case"></div>
       <div class="status-line" id="status-line" aria-live="polite"></div>
     </section>
   </main>
   <script>
     var battleState = null;
+    var playerMovePp = {};
     var statuses = ["healthy", "brn", "frz", "par", "psn", "slp", "tox"];
     var boostStats = ["atk", "def", "spa", "spd", "spe", "accuracy", "evasion"];
 
@@ -191,6 +202,7 @@ export const quickCapturePage = String.raw`<!doctype html>
       try {
         var body = await api("/api/event", { method: "POST", body: JSON.stringify(event) });
         battleState = body.state;
+        playerMovePp = body.playerMovePp;
         render();
         setStatus("Updated.");
       } catch (error) {
@@ -280,8 +292,22 @@ export const quickCapturePage = String.raw`<!doctype html>
       card.appendChild(statusRow);
 
       if (isOpponent) card.appendChild(renderMoveKnowledge(pokemon));
+      if (!isOpponent) card.appendChild(renderPlayerMoves(pokemon));
       card.appendChild(renderAdvanced(pokemon, side));
       return card;
+    }
+
+    function renderPlayerMoves(pokemon) {
+      var wrapper = element("div", "move-list");
+      (playerMovePp[pokemon.slot] || []).forEach(function(move) {
+        var row = element("div", "move-line");
+        row.append(
+          element("span", "", move.moveName),
+          element("span", "pp-value", move.currentPp + " / " + move.maxPp + " PP")
+        );
+        wrapper.appendChild(row);
+      });
+      return wrapper;
     }
 
     function renderMoveKnowledge(pokemon) {
@@ -418,14 +444,13 @@ export const quickCapturePage = String.raw`<!doctype html>
         body.results.forEach(function(result) {
           var card = element("article", "advice-card");
           card.append(
-            element("h3", "", result.rank + ". " + result.choice),
-            element("div", "score", "Score " + round(result.score) + " | expected " + round(result.expectedScore) + " | worst " + round(result.worstCaseScore)),
-            element("div", "outcome", result.explanationTags.join(", ") || "No explanation tags"),
-            element("div", "outcome", result.outcomeSummary),
-            element("div", "outcome", "Worst response: " + result.worstOpponentChoice)
+            element("h3", "", result.rank + ". Recommended turn"),
+            element("div", "score", "Plan score " + round(result.score) + " | expected " + round(result.expectedScore) + " | worst " + round(result.worstCaseScore))
           );
+          result.actions.forEach(function(action) { card.appendChild(renderAdviceAction(action, false)); });
           list.appendChild(card);
         });
+        renderWorstCase(body.worstCase);
         setStatus(body.totalPlans + " plans ranked in " + Math.round(body.elapsedMs) + " ms.");
       } catch (error) {
         setStatus(error.message, true);
@@ -436,8 +461,52 @@ export const quickCapturePage = String.raw`<!doctype html>
 
     function round(value) { return Math.round(value * 100) / 100; }
 
+    function renderAdviceAction(action, incoming) {
+      var row = element("div", "action-line");
+      if (action.type === "switch") {
+        row.appendChild(element("div", "action-name", action.actorSpecies + " switches to " + action.switchSpecies));
+        return row;
+      }
+
+      row.appendChild(element(
+        "div",
+        "action-name",
+        action.actorSpecies + " uses " + action.moveName + " on " + action.targetSpecies
+      ));
+      if (action.damage) {
+        row.appendChild(element(
+          "div",
+          "damage-line",
+          incoming
+            ? "Expected " + oneDecimal(action.damage.expectedDamage) + " HP | critical max " + action.damage.criticalMaxDamage + " HP | hit " + oneDecimal(action.damage.accuracyPercent) + "% | miss " + oneDecimal(action.damage.missChancePercent) + "% | crit " + oneDecimal(action.damage.criticalChancePercent) + "%"
+            : "Expected damage " + oneDecimal(action.damage.expectedDamage) + " HP | normal " + action.damage.normalMinDamage + "-" + action.damage.normalMaxDamage + " HP | accuracy " + oneDecimal(action.damage.accuracyPercent) + "% | crit " + oneDecimal(action.damage.criticalChancePercent) + "%"
+        ));
+      } else {
+        row.appendChild(element("div", "damage-line", "No direct damage"));
+      }
+      return row;
+    }
+
+    function renderWorstCase(worstCase) {
+      var wrapper = document.getElementById("worst-case");
+      wrapper.replaceChildren();
+      wrapper.className = "worst-case visible";
+      wrapper.appendChild(element("h3", "", "Worst enemy damage"));
+      worstCase.actions.forEach(function(action) {
+        wrapper.appendChild(renderAdviceAction(action, true));
+      });
+      wrapper.appendChild(element(
+        "div",
+        "score",
+        "Combined expected " + oneDecimal(worstCase.totalExpectedDamage) + " HP | combined critical maximum " + worstCase.totalCriticalMaxDamage + " HP"
+      ));
+    }
+
+    function oneDecimal(value) { return Math.round(value * 10) / 10; }
+
     api("/api/state").then(function(body) {
       battleState = body.state;
+      playerMovePp = body.playerMovePp;
       render();
       setStatus("Ready.");
     }).catch(function(error) {

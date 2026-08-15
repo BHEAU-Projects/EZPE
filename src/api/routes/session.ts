@@ -3,6 +3,7 @@ import type { FastifyInstance } from "fastify";
 
 import type { BattleSession } from "../../session/battle-session.js";
 import { battleEventSchema } from "../../session/battle-events.js";
+import { AdvicePresenter, presentPlayerMovePp } from "../../advisor/advice-presenter.js";
 
 const rankRequestSchema = z
   .object({
@@ -12,7 +13,7 @@ const rankRequestSchema = z
   .strict();
 
 export function registerSessionRoutes(app: FastifyInstance, session: BattleSession): void {
-  app.get("/api/state", async () => ({ state: session.getState() }));
+  app.get("/api/state", async () => statePayload(session));
 
   app.post("/api/event", async (request, reply) => {
     const event = battleEventSchema.safeParse(request.body);
@@ -24,7 +25,8 @@ export function registerSessionRoutes(app: FastifyInstance, session: BattleSessi
     }
 
     try {
-      return { state: session.applyEvent(event.data) };
+      session.applyEvent(event.data);
+      return statePayload(session);
     } catch (error) {
       return reply.code(400).send({ error: formatError(error) });
     }
@@ -40,26 +42,33 @@ export function registerSessionRoutes(app: FastifyInstance, session: BattleSessi
       const startedAt = performance.now();
       const results = session.rank({ maxOpponentPlans: input.data.maxOpponentPlans });
       const elapsedMs = performance.now() - startedAt;
+      const presenter = new AdvicePresenter(session.getState());
 
       return {
         elapsedMs,
         totalPlans: results.length,
+        worstCase: presenter.findWorstEnemyDamagePlan(),
         results: results.slice(0, input.data.top).map((result) => ({
           rank: result.rank,
-          choice: result.actionPlan.showdownChoice,
+          actions: presenter.presentPlan(result.actionPlan),
           score: result.score,
           confidence: result.confidence,
-          explanationTags: result.explanationTags,
-          outcomeSummary: result.outcomeSummary,
           expectedScore: result.debug.opponentEvaluation.expectedScore,
-          worstCaseScore: result.debug.opponentEvaluation.worstCaseScore,
-          worstOpponentChoice: result.debug.opponentEvaluation.worstOpponentChoice
+          worstCaseScore: result.debug.opponentEvaluation.worstCaseScore
         }))
       };
     } catch (error) {
       return reply.code(400).send({ error: formatError(error) });
     }
   });
+}
+
+function statePayload(session: BattleSession) {
+  const state = session.getState();
+  return {
+    state,
+    playerMovePp: presentPlayerMovePp(state)
+  };
 }
 
 function formatError(error: unknown): string {

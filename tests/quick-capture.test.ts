@@ -79,10 +79,26 @@ describe("Quick Capture server", () => {
     expect(response.json()).toMatchObject({
       totalPlans: expect.any(Number),
       elapsedMs: expect.any(Number),
+      worstCase: {
+        actions: expect.any(Array),
+        totalExpectedDamage: expect.any(Number),
+        totalCriticalMaxDamage: expect.any(Number)
+      },
       results: [
         {
           rank: 1,
-          choice: expect.any(String),
+          actions: [
+            {
+              actorSpecies: "Pikachu",
+              moveName: expect.any(String),
+              targetSpecies: expect.any(String)
+            },
+            {
+              actorSpecies: "Bulbasaur",
+              moveName: expect.any(String),
+              targetSpecies: expect.any(String)
+            }
+          ],
           expectedScore: expect.any(Number),
           worstCaseScore: expect.any(Number)
         }
@@ -105,5 +121,27 @@ describe("Quick Capture server", () => {
     expect(response.statusCode).toBe(400);
     const state = await server.inject({ method: "GET", url: "/api/state" });
     expect(state.json().state.teams.p2.active[0].hp.percent).toBe(100);
+  });
+
+  it("includes the player's current and maximum move PP", async () => {
+    const server = createApp();
+    await server.inject({
+      method: "POST",
+      url: "/api/event",
+      payload: {
+        type: "move-pp-changed",
+        slot: "p1a",
+        moveId: "thunderbolt",
+        remainingPp: 7
+      }
+    });
+
+    const response = await server.inject({ method: "GET", url: "/api/state" });
+    expect(response.json().playerMovePp.p1a).toContainEqual({
+      moveId: "thunderbolt",
+      moveName: "Thunderbolt",
+      currentPp: 7,
+      maxPp: 15
+    });
   });
 });
