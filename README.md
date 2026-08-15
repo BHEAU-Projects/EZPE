@@ -12,6 +12,7 @@ The project currently has a validated battle-state contract, regulation snapshot
 
 ```bash
 npm run dev
+npm run cli -- --sample
 npm run typecheck
 npm test
 ```
@@ -23,6 +24,24 @@ Use `typecheck` and `test` after changing schemas, mechanics, simulation, or adv
 All subjective advisor grading lives in `config/scoring.json`. Adjust its damage, KO,
 risk, opponent-aggregation, threshold, and confidence values without editing TypeScript.
 The running process reloads the validated file when its modification time changes.
+
+## Terminal Workflow
+
+Start immediately with the sample state:
+
+```bash
+npm run cli -- --sample
+```
+
+Load a saved session or state with `npm run cli -- --state battle-session.json`.
+To start from team exports, provide two Showdown-format files containing the four
+selected Pokemon in battle order (two leads, then two bench Pokemon):
+
+```bash
+npm run cli -- --player-team player.txt --opponent-team opponent.txt --regulation development
+```
+
+Inside the CLI, use `help` to list compact update and ranking commands.
 
 ## Planned Input Concept
 

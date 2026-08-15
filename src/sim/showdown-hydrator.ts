@@ -1,4 +1,5 @@
-import { toID, type Battle } from "pokemon-showdown";
+import PokemonShowdown from "pokemon-showdown";
+import type { Battle } from "pokemon-showdown";
 
 import type {
   ActivePokemon,
@@ -8,6 +9,8 @@ import type {
   StatBoosts,
   TeamState
 } from "../domain/battle-state.js";
+
+const { toID } = PokemonShowdown;
 
 export interface HydratedPokemonSummary {
   side: PlayerSide;

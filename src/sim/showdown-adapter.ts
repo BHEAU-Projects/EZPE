@@ -1,4 +1,4 @@
-import { Battle } from "pokemon-showdown";
+import PokemonShowdown from "pokemon-showdown";
 
 import type {
   BattleState,
@@ -16,6 +16,9 @@ import {
   toShowdownCurrentHp,
   type HydratedBattleSummary
 } from "./showdown-hydrator.js";
+
+const { Battle } = PokemonShowdown;
+type Battle = InstanceType<typeof Battle>;
 
 export { toShowdownCurrentHp } from "./showdown-hydrator.js";
 

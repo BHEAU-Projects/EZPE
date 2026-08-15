@@ -1,6 +1,6 @@
 import { Generations } from "@pkmn/data";
 import { Dex as PkmnDex, toID } from "@pkmn/dex";
-import { Dex as ShowdownDex, TeamValidator } from "pokemon-showdown";
+import PokemonShowdown from "pokemon-showdown";
 
 import type { BattleState, PokemonSet, StatTable } from "../domain/battle-state.js";
 import { getOverridesForRegulation } from "./champions-overrides.js";
@@ -10,7 +10,10 @@ import {
   type RegulationSnapshot
 } from "./regulations.js";
 
-type ValidatorTeam = NonNullable<Parameters<TeamValidator["validateTeam"]>[0]>;
+const { Dex: ShowdownDex, TeamValidator } = PokemonShowdown;
+
+type TeamValidatorInstance = InstanceType<typeof TeamValidator>;
+type ValidatorTeam = NonNullable<Parameters<TeamValidatorInstance["validateTeam"]>[0]>;
 type StatId = keyof StatTable;
 
 const statIds: StatId[] = ["hp", "atk", "def", "spa", "spd", "spe"];

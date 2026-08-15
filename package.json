@@ -4,6 +4,7 @@
   "description": "Backend-only scaffold for learning AI through Pokemon Champions battle-state analysis.",
   "type": "module",
   "scripts": {
+    "cli": "tsx src/cli/main.ts",
     "dev": "tsx src/api/server.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --config vitest.config.ts --passWithNoTests"
