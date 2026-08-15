@@ -152,6 +152,12 @@ export const pokemonSetSchema = z
   })
   .strict();
 
+const pokemonRuntimeStateFields = {
+  currentItemId: canonicalIdSchema.nullable().optional(),
+  currentAbilityId: canonicalIdSchema.optional(),
+  movePp: z.record(canonicalIdSchema, z.number().int().min(0).max(64)).optional()
+};
+
 export const activePokemonSchema = z
   .object({
     slot: activeSlotSchema,
@@ -160,7 +166,8 @@ export const activePokemonSchema = z
     status: statusConditionSchema.default("healthy"),
     boosts: statBoostsSchema.default(defaultStatBoosts),
     volatileEffectIds: z.array(canonicalIdSchema).default([]),
-    protectedThisTurn: z.boolean().default(false)
+    protectedThisTurn: z.boolean().default(false),
+    ...pokemonRuntimeStateFields
   })
   .strict();
 
@@ -170,7 +177,8 @@ export const benchPokemonSchema = z
     set: pokemonSetSchema,
     hp: hpMeasurementSchema,
     status: statusConditionSchema.default("healthy"),
-    fainted: z.boolean().default(false)
+    fainted: z.boolean().default(false),
+    ...pokemonRuntimeStateFields
   })
   .strict();
 

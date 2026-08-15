@@ -158,6 +158,48 @@ describe("applyBattleEvent", () => {
     expect(state.teams.p2.sideConditions.reflectTurns).toBe(5);
   });
 
+  it("tracks current item, ability, move PP, and volatile effects", () => {
+    let state = applyBattleEvent(singleTurnBattleState, {
+      type: "item-changed",
+      slot: "p1a",
+      itemId: null
+    });
+    state = applyBattleEvent(state, {
+      type: "ability-changed",
+      slot: "p1a",
+      abilityId: "lightningrod"
+    });
+    state = applyBattleEvent(state, {
+      type: "move-pp-changed",
+      slot: "p1a",
+      moveId: "thunderbolt",
+      remainingPp: 3
+    });
+    state = applyBattleEvent(state, {
+      type: "volatiles-changed",
+      slot: "p1a",
+      volatileEffectIds: ["focusenergy"]
+    });
+
+    expect(state.teams.p1.active[0]).toMatchObject({
+      currentItemId: null,
+      currentAbilityId: "lightningrod",
+      movePp: { thunderbolt: 3 },
+      volatileEffectIds: ["focusenergy"]
+    });
+  });
+
+  it("rejects PP observations for moves the Pokemon does not know", () => {
+    expect(() =>
+      applyBattleEvent(singleTurnBattleState, {
+        type: "move-pp-changed",
+        slot: "p1a",
+        moveId: "surf",
+        remainingPp: 5
+      })
+    ).toThrow(/does not know surf/);
+  });
+
   it("starts a turn, clears protection, and refreshes legal actions", () => {
     const state = structuredClone(singleTurnBattleState);
     state.teams.p1.active[0].protectedThisTurn = true;

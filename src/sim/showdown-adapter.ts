@@ -10,6 +10,14 @@ import type {
   TeamState
 } from "../domain/battle-state.js";
 import { getRegulationById } from "../data/regulations.js";
+import {
+  captureHydratedBattleState,
+  hydrateBattleState,
+  toShowdownCurrentHp,
+  type HydratedBattleSummary
+} from "./showdown-hydrator.js";
+
+export { toShowdownCurrentHp } from "./showdown-hydrator.js";
 
 export interface ShowdownPokemonSet {
   name: string;
@@ -89,6 +97,7 @@ export interface SingleTurnSimulationResult {
   moveEvents: ShowdownMoveEvent[];
   damageEvents: ShowdownDamageEvent[];
   summary: SingleTurnOutcomeSummary;
+  initialState: HydratedBattleSummary;
   turn: number;
   ended: boolean;
   winner: string | null;
@@ -207,10 +216,6 @@ export function simulateSingleTurn(input: SingleTurnSimulationInput): SingleTurn
       team: input.p2.team
     });
 
-    if (input.battleState) {
-      applyObservedHpToBattle(battle, input.battleState);
-    }
-
     if (battle.requestState === "teampreview") {
       battle.makeChoices(
         input.p1.teamPreviewChoice ?? defaultTeamPreviewChoice(input.p1.team.length),
@@ -221,6 +226,10 @@ export function simulateSingleTurn(input: SingleTurnSimulationInput): SingleTurn
     if (battle.requestState !== "move") {
       throw new Error(`Expected move request before simulating a turn, received ${battle.requestState || "none"}.`);
     }
+
+    const initialState = input.battleState
+      ? hydrateBattleState(battle, input.battleState)
+      : captureHydratedBattleState(battle);
 
     const initialHpBySlot = captureActiveHp(battle);
 
@@ -238,6 +247,7 @@ export function simulateSingleTurn(input: SingleTurnSimulationInput): SingleTurn
       moveEvents,
       damageEvents,
       summary: summarizeSingleTurnOutcome(log, moveEvents, damageEvents, initialHpBySlot),
+      initialState,
       turn: battle.turn,
       ended: battle.ended,
       winner: battle.winner ?? null
@@ -245,18 +255,6 @@ export function simulateSingleTurn(input: SingleTurnSimulationInput): SingleTurn
   } finally {
     battle.destroy();
   }
-}
-
-export function toShowdownCurrentHp(hp: HpMeasurement, showdownMaxHp: number): number {
-  if (!Number.isInteger(showdownMaxHp) || showdownMaxHp < 1) {
-    throw new RangeError("Showdown max HP must be a positive integer.");
-  }
-
-  const fraction = hp.unit === "exact" ? hp.current / hp.max : hp.percent / 100;
-
-  if (fraction <= 0) return 0;
-
-  return Math.max(1, Math.min(showdownMaxHp, Math.round(showdownMaxHp * fraction)));
 }
 
 function defaultTeamPreviewChoice(activeCount: number): string {
@@ -459,33 +457,6 @@ function parseHpText(rawHpText: string): { remainingHp: number; maxHp: number | 
     remainingHp: Number.parseInt(remainingText, 10),
     maxHp: maxText ? Number.parseInt(maxText, 10) : null
   };
-}
-
-function applyObservedHpToBattle(battle: Battle, battleState: BattleState): void {
-  for (const side of ["p1", "p2"] as const) {
-    const observedPokemon = orderedTeamPokemon(battleState.teams[side]);
-    const showdownSide = side === "p1" ? battle.p1 : battle.p2;
-
-    observedPokemon.forEach((pokemon, index) => {
-      const showdownPokemon = showdownSide.pokemon[index];
-
-      if (!showdownPokemon) {
-        throw new Error(`Showdown is missing team position ${index + 1} for ${side}.`);
-      }
-
-      showdownPokemon.hp = toShowdownCurrentHp(pokemon.hp, showdownPokemon.maxhp);
-      showdownPokemon.fainted = showdownPokemon.hp === 0;
-    });
-
-    showdownSide.pokemonLeft = showdownSide.pokemon.filter((pokemon) => !pokemon.fainted).length;
-  }
-}
-
-function orderedTeamPokemon(team: TeamState): Array<TeamState["active"][number] | TeamState["bench"][number]> {
-  const active = [...team.active].sort((a, b) => a.slot.localeCompare(b.slot));
-  const bench = [...team.bench].sort((a, b) => a.benchSlot - b.benchSlot);
-
-  return [...active, ...bench];
 }
 
 function captureActiveHp(battle: Battle): Map<string, ShowdownPokemonHpSummary> {

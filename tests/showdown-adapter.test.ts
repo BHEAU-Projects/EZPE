@@ -65,4 +65,72 @@ describe("showdown adapter", () => {
     expect(squirtleDamage?.damageAmount).toBeGreaterThan(0);
     expect(squirtleDamage?.damageAmount).toBeLessThan(20);
   });
+
+  it("hydrates the complete persistent board state before simulating", () => {
+    const battleState = structuredClone(singleTurnBattleState);
+    battleState.turnNumber = 3;
+    battleState.teams.p1.active[0].status = "par";
+    battleState.teams.p1.active[0].boosts.spa = 2;
+    battleState.teams.p1.active[0].volatileEffectIds = ["focusenergy"];
+    battleState.teams.p1.active[0].currentItemId = null;
+    battleState.teams.p1.active[0].movePp = { thunderbolt: 3 };
+    battleState.teams.p1.sideConditions.reflectTurns = 5;
+    battleState.teams.p1.sideConditions.spikesLayers = 2;
+    battleState.field.weather = "rain";
+    battleState.field.weatherTurnsRemaining = 4;
+    battleState.field.terrain = "electric";
+    battleState.field.terrainTurnsRemaining = 3;
+    battleState.field.trickRoomTurnsRemaining = 2;
+
+    const input = createSingleTurnSimulationInputFromBattleState(battleState, singleTurnChoices);
+    const result = simulateSingleTurn({ ...input, seed: [1, 2, 3, 4] });
+    const pikachu = result.initialState.pokemon.find((pokemon) => pokemon.slot === "p1a");
+
+    expect(result.initialState).toMatchObject({
+      turnNumber: 3,
+      weather: "raindance",
+      weatherTurnsRemaining: 4,
+      terrain: "electricterrain",
+      terrainTurnsRemaining: 3,
+      pseudoWeather: { trickroom: 2 },
+      sideConditions: {
+        p1: {
+          reflect: { duration: 5 },
+          spikes: { layers: 2 }
+        }
+      }
+    });
+    expect(pikachu).toMatchObject({
+      status: "par",
+      boosts: { spa: 2 },
+      itemId: "",
+      movePp: { thunderbolt: 3 },
+      volatileEffectIds: ["focusenergy"]
+    });
+    expect(result.turn).toBe(4);
+  });
+
+  it("applies hydrated side conditions to turn mechanics", () => {
+    const withoutReflect = structuredClone(singleTurnBattleState);
+    const withReflect = structuredClone(singleTurnBattleState);
+    withReflect.teams.p1.sideConditions.reflectTurns = 5;
+    const choices = {
+      p1Choice: singleTurnChoices.p1Choice,
+      p2Choice: "move tackle 2, move scratch 2"
+    };
+
+    const baseline = simulateSingleTurn({
+      ...createSingleTurnSimulationInputFromBattleState(withoutReflect, choices),
+      seed: [1, 2, 3, 4]
+    });
+    const reflected = simulateSingleTurn({
+      ...createSingleTurnSimulationInputFromBattleState(withReflect, choices),
+      seed: [1, 2, 3, 4]
+    });
+
+    expect(reflected.summary.damageTakenBySide.p1).toBeGreaterThan(0);
+    expect(reflected.summary.damageTakenBySide.p1).toBeLessThan(
+      baseline.summary.damageTakenBySide.p1
+    );
+  });
 });

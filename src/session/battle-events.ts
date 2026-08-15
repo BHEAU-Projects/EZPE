@@ -122,6 +122,50 @@ export const boostsChangedEventSchema = z
   })
   .strict();
 
+export const itemChangedEventSchema = z
+  .object({
+    type: z.literal("item-changed"),
+    slot: activeSlotSchema,
+    itemId: z
+      .string()
+      .regex(/^[a-z0-9]+$/)
+      .nullable()
+  })
+  .strict();
+
+export const abilityChangedEventSchema = z
+  .object({
+    type: z.literal("ability-changed"),
+    slot: activeSlotSchema,
+    abilityId: z.string().min(1).regex(/^[a-z0-9]+$/)
+  })
+  .strict();
+
+export const movePpChangedEventSchema = z
+  .object({
+    type: z.literal("move-pp-changed"),
+    slot: activeSlotSchema,
+    moveId: z.string().min(1).regex(/^[a-z0-9]+$/),
+    remainingPp: z.number().int().min(0).max(64)
+  })
+  .strict();
+
+export const volatilesChangedEventSchema = z
+  .object({
+    type: z.literal("volatiles-changed"),
+    slot: activeSlotSchema,
+    volatileEffectIds: z.array(z.string().min(1).regex(/^[a-z0-9]+$/))
+  })
+  .strict();
+
+export const specialMechanicUsedEventSchema = z
+  .object({
+    type: z.literal("special-mechanic-used"),
+    slot: activeSlotSchema,
+    kind: z.string().min(1).regex(/^[a-z0-9]+$/)
+  })
+  .strict();
+
 export const fieldChangedEventSchema = z
   .object({
     type: z.literal("field-changed"),
@@ -152,6 +196,11 @@ export const battleEventSchema = z.discriminatedUnion("type", [
   statusAppliedEventSchema,
   statusClearedEventSchema,
   boostsChangedEventSchema,
+  itemChangedEventSchema,
+  abilityChangedEventSchema,
+  movePpChangedEventSchema,
+  volatilesChangedEventSchema,
+  specialMechanicUsedEventSchema,
   fieldChangedEventSchema,
   sideConditionChangedEventSchema,
   legalActionsUpdatedEventSchema
@@ -164,6 +213,11 @@ export type SwitchObservedEvent = z.infer<typeof switchObservedEventSchema>;
 export type StatusAppliedEvent = z.infer<typeof statusAppliedEventSchema>;
 export type StatusClearedEvent = z.infer<typeof statusClearedEventSchema>;
 export type BoostsChangedEvent = z.infer<typeof boostsChangedEventSchema>;
+export type ItemChangedEvent = z.infer<typeof itemChangedEventSchema>;
+export type AbilityChangedEvent = z.infer<typeof abilityChangedEventSchema>;
+export type MovePpChangedEvent = z.infer<typeof movePpChangedEventSchema>;
+export type VolatilesChangedEvent = z.infer<typeof volatilesChangedEventSchema>;
+export type SpecialMechanicUsedEvent = z.infer<typeof specialMechanicUsedEventSchema>;
 export type FieldChangedEvent = z.infer<typeof fieldChangedEventSchema>;
 export type SideConditionChangedEvent = z.infer<typeof sideConditionChangedEventSchema>;
 export type LegalActionsUpdatedEvent = z.infer<typeof legalActionsUpdatedEventSchema>;

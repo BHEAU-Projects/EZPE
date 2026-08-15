@@ -13,6 +13,10 @@ describe("battleEventSchema", () => {
       { type: "faint-observed", slot: "p2a" },
       { type: "status-applied", slot: "p1a", status: "par" },
       { type: "status-cleared", slot: "p1a" },
+      { type: "item-changed", slot: "p1a", itemId: null },
+      { type: "ability-changed", slot: "p1a", abilityId: "lightningrod" },
+      { type: "move-pp-changed", slot: "p1a", moveId: "thunderbolt", remainingPp: 3 },
+      { type: "volatiles-changed", slot: "p1a", volatileEffectIds: ["focusenergy"] },
       { type: "field-changed", changes: { weather: "rain", weatherTurnsRemaining: 5 } },
       { type: "side-condition-changed", side: "p1", changes: { tailwindTurns: 4 } }
     ];

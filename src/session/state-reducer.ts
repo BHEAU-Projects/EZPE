@@ -89,6 +89,37 @@ export function applyBattleEvent(state: BattleState, event: BattleEvent): Battle
       findActivePokemon(nextState, parsedEvent.slot).boosts = parsedEvent.boosts;
       break;
 
+    case "item-changed":
+      findActivePokemon(nextState, parsedEvent.slot).currentItemId = parsedEvent.itemId;
+      break;
+
+    case "ability-changed":
+      findActivePokemon(nextState, parsedEvent.slot).currentAbilityId = parsedEvent.abilityId;
+      break;
+
+    case "move-pp-changed": {
+      const pokemon = findActivePokemon(nextState, parsedEvent.slot);
+      if (!pokemon.set.moveIds.includes(parsedEvent.moveId)) {
+        throw new Error(`${pokemon.set.speciesId} does not know ${parsedEvent.moveId}.`);
+      }
+      pokemon.movePp = { ...pokemon.movePp, [parsedEvent.moveId]: parsedEvent.remainingPp };
+      break;
+    }
+
+    case "volatiles-changed":
+      findActivePokemon(nextState, parsedEvent.slot).volatileEffectIds =
+        parsedEvent.volatileEffectIds;
+      break;
+
+    case "special-mechanic-used": {
+      const pokemon = findActivePokemon(nextState, parsedEvent.slot);
+      if (pokemon.set.specialMechanic?.kind !== parsedEvent.kind) {
+        throw new Error(`${pokemon.set.speciesId} does not have special mechanic ${parsedEvent.kind}.`);
+      }
+      pokemon.set.specialMechanic.used = true;
+      break;
+    }
+
     case "field-changed":
       nextState.field = { ...nextState.field, ...parsedEvent.changes };
       break;
@@ -151,7 +182,10 @@ function applySwitch(
     status: incomingPokemon.status,
     boosts: structuredClone(emptyBoosts),
     volatileEffectIds: [],
-    protectedThisTurn: false
+    protectedThisTurn: false,
+    currentItemId: incomingPokemon.currentItemId,
+    currentAbilityId: incomingPokemon.currentAbilityId,
+    movePp: incomingPokemon.movePp
   };
 
   team.bench[benchIndex] = {
@@ -159,7 +193,10 @@ function applySwitch(
     set: outgoingPokemon.set,
     hp: outgoingPokemon.hp,
     status: outgoingPokemon.status,
-    fainted: isFainted(outgoingPokemon.hp)
+    fainted: isFainted(outgoingPokemon.hp),
+    currentItemId: outgoingPokemon.currentItemId,
+    currentAbilityId: outgoingPokemon.currentAbilityId,
+    movePp: outgoingPokemon.movePp
   };
 }
 
