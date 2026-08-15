@@ -12,12 +12,17 @@ import { generateActionPlansForSide } from "./move-ranker.js";
 
 export interface DamageEstimate {
   expectedDamage: number;
+  expectedDamagePercent: number;
   normalMinDamage: number;
+  normalMinDamagePercent: number;
   normalMaxDamage: number;
+  normalMaxDamagePercent: number;
   criticalMaxDamage: number;
+  criticalMaxDamagePercent: number;
   accuracyPercent: number;
   missChancePercent: number;
   criticalChancePercent: number;
+  koChancePercent: number;
 }
 
 export interface PresentedAction {
@@ -32,8 +37,13 @@ export interface PresentedAction {
   damage: DamageEstimate | null;
 }
 
+export interface PresentedWorstCaseAction extends PresentedAction {
+  actionChancePercent: number;
+  adjustedExpectedDamage: number;
+}
+
 export interface PresentedWorstCase {
-  actions: PresentedAction[];
+  actions: PresentedWorstCaseAction[];
   totalExpectedDamage: number;
   totalCriticalMaxDamage: number;
 }
@@ -46,11 +56,21 @@ export interface PresentedMovePp {
 }
 
 interface TargetDamageEstimate extends DamageEstimate {
+  targetSlot: string;
   targetSpecies: string;
+  targetCurrentHp: number;
+  outcomes: DamageOutcome[];
+}
+
+interface DamageOutcome {
+  damage: number;
+  probability: number;
 }
 
 export class AdvicePresenter {
   private readonly actionCache = new Map<string, PresentedAction>();
+  private readonly targetEstimateCache = new Map<string, TargetDamageEstimate[]>();
+  private readonly orderCache = new Map<string, number>();
 
   constructor(private readonly battleState: BattleState) {}
 
@@ -58,24 +78,92 @@ export class AdvicePresenter {
     return plan.actions.map((action) => this.presentAction(action));
   }
 
-  findWorstEnemyDamagePlan(): PresentedWorstCase {
+  findWorstEnemyDamagePlan(playerPlan: ActionPlan): PresentedWorstCase {
     const opponentSide = this.battleState.playerSide === "p1" ? "p2" : "p1";
     const plans = generateActionPlansForSide(this.battleState, opponentSide);
     const presentedPlans = plans.map((plan) => {
-      const actions = this.presentPlan(plan);
+      const actions = plan.actions.map((action) => {
+        const presented = this.presentAction(action);
+        const actionChance = this.calculateEnemyActionChance(playerPlan, action);
+
+        return {
+          ...presented,
+          actionChancePercent: actionChance * 100,
+          adjustedExpectedDamage: (presented.damage?.expectedDamage ?? 0) * actionChance
+        };
+      });
       return {
         actions,
-        totalExpectedDamage: sumDamage(actions, "expectedDamage"),
-        totalCriticalMaxDamage: sumDamage(actions, "criticalMaxDamage")
+        totalExpectedDamage: actions.reduce(
+          (sum, action) => sum + action.adjustedExpectedDamage,
+          0
+        ),
+        totalCriticalMaxDamage: actions.reduce(
+          (sum, action) => sum + (action.actionChancePercent > 0
+            ? action.damage?.criticalMaxDamage ?? 0
+            : 0),
+          0
+        )
       };
     });
 
     return presentedPlans.reduce((worst, candidate) => {
-      if (candidate.totalCriticalMaxDamage !== worst.totalCriticalMaxDamage) {
-        return candidate.totalCriticalMaxDamage > worst.totalCriticalMaxDamage ? candidate : worst;
+      if (candidate.totalExpectedDamage !== worst.totalExpectedDamage) {
+        return candidate.totalExpectedDamage > worst.totalExpectedDamage ? candidate : worst;
       }
-      return candidate.totalExpectedDamage > worst.totalExpectedDamage ? candidate : worst;
+      return candidate.totalCriticalMaxDamage > worst.totalCriticalMaxDamage ? candidate : worst;
     });
+  }
+
+  private calculateEnemyActionChance(playerPlan: ActionPlan, enemyAction: LegalAction): number {
+    if (enemyAction.type !== "move") return 1;
+
+    const damagingActions = playerPlan.actions.flatMap((playerAction) => {
+      if (playerAction.type !== "move") return [];
+      const estimate = this.getTargetEstimates(playerAction).find(
+        (target) => target.targetSlot === enemyAction.activeSlot
+      );
+      if (!estimate) return [];
+
+      const beforeChance = this.getMoveBeforeChance(playerAction, enemyAction);
+      if (beforeChance === 0) return [];
+      return [{ estimate, beforeChance }];
+    });
+
+    if (damagingActions.length === 0) return 1;
+
+    let combined: DamageOutcome[] = [{ damage: 0, probability: 1 }];
+    for (const { estimate, beforeChance } of damagingActions) {
+      const timedOutcomes = addMoveOrderChance(estimate.outcomes, beforeChance);
+      combined = combineDamageOutcomes(combined, timedOutcomes);
+    }
+
+    const koChance = combined
+      .filter((outcome) => outcome.damage >= damagingActions[0].estimate.targetCurrentHp)
+      .reduce((sum, outcome) => sum + outcome.probability, 0);
+    const actionChance = Math.max(0, Math.min(1, 1 - koChance));
+    return actionChance < 1e-12 ? 0 : actionChance;
+  }
+
+  private getMoveBeforeChance(
+    playerAction: Extract<LegalAction, { type: "move" }>,
+    enemyAction: Extract<LegalAction, { type: "move" }>
+  ): number {
+    const key = `${JSON.stringify(playerAction)}::${JSON.stringify(enemyAction)}`;
+    const cached = this.orderCache.get(key);
+    if (cached !== undefined) return cached;
+
+    const battle = createHydratedBattleFromState(this.battleState);
+    try {
+      const playerOrder = resolveMoveOrder(battle, playerAction);
+      const enemyOrder = resolveMoveOrder(battle, enemyAction);
+      const comparison = battle.comparePriority(playerOrder, enemyOrder);
+      const chance = comparison < 0 ? 1 : comparison > 0 ? 0 : 0.5;
+      this.orderCache.set(key, chance);
+      return chance;
+    } finally {
+      battle.destroy();
+    }
   }
 
   private presentAction(action: LegalAction): PresentedAction {
@@ -107,9 +195,7 @@ export class AdvicePresenter {
       const targetSpecies = targets.length > 0
         ? targets.map((target) => displaySpecies(target.set)).join(" + ")
         : formatNonPokemonTarget(action.targetSlot, actorSpecies);
-      const estimates = move?.category === "Status"
-        ? []
-        : estimateMoveDamage(this.battleState, action, targets.length > 1);
+      const estimates = move?.category === "Status" ? [] : this.getTargetEstimates(action);
 
       presented = {
         type: "move",
@@ -125,6 +211,22 @@ export class AdvicePresenter {
 
     this.actionCache.set(key, presented);
     return presented;
+  }
+
+  private getTargetEstimates(
+    action: Extract<LegalAction, { type: "move" }>
+  ): TargetDamageEstimate[] {
+    const key = JSON.stringify(action);
+    const cached = this.targetEstimateCache.get(key);
+    if (cached) return cached;
+
+    const targets = resolveTargetPokemon(this.battleState, action.activeSlot, action.targetSlot);
+    const move = pokemonDataService.getMove(this.battleState.regulationId, action.moveId);
+    const estimates = move?.category === "Status"
+      ? []
+      : estimateMoveDamage(this.battleState, action, targets.length > 1);
+    this.targetEstimateCache.set(key, estimates);
+    return estimates;
   }
 }
 
@@ -178,16 +280,33 @@ function estimateMoveDamage(
       const expectedDamage = hitChance * (
         expectedNormal * (1 - criticalChance) + expectedCritical * criticalChance
       );
+      const outcomes = buildDamageOutcomes(
+        normalRolls,
+        criticalRolls,
+        hitChance,
+        criticalChance
+      );
+      const toPercent = (damage: number) => damage / target.maxhp * 100;
 
       return [{
+        targetSlot: targetState.slot,
         targetSpecies: displaySpecies(targetState.set),
+        targetCurrentHp: target.hp,
+        outcomes,
         expectedDamage,
+        expectedDamagePercent: toPercent(expectedDamage),
         normalMinDamage: Math.min(...normalRolls),
+        normalMinDamagePercent: toPercent(Math.min(...normalRolls)),
         normalMaxDamage: Math.max(...normalRolls),
+        normalMaxDamagePercent: toPercent(Math.max(...normalRolls)),
         criticalMaxDamage: Math.max(...criticalRolls),
+        criticalMaxDamagePercent: toPercent(Math.max(...criticalRolls)),
         accuracyPercent,
         missChancePercent: 100 - accuracyPercent,
-        criticalChancePercent: criticalChance * 100
+        criticalChancePercent: criticalChance * 100,
+        koChancePercent: outcomes
+          .filter((outcome) => outcome.damage >= target.hp)
+          .reduce((sum, outcome) => sum + outcome.probability * 100, 0)
       }];
     });
   } finally {
@@ -267,13 +386,117 @@ function combineTargetEstimates(estimates: TargetDamageEstimate[]): DamageEstima
   if (estimates.length === 0) return null;
   return {
     expectedDamage: estimates.reduce((sum, estimate) => sum + estimate.expectedDamage, 0),
+    expectedDamagePercent: estimates.reduce(
+      (sum, estimate) => sum + estimate.expectedDamagePercent,
+      0
+    ),
     normalMinDamage: estimates.reduce((sum, estimate) => sum + estimate.normalMinDamage, 0),
+    normalMinDamagePercent: estimates.reduce(
+      (sum, estimate) => sum + estimate.normalMinDamagePercent,
+      0
+    ),
     normalMaxDamage: estimates.reduce((sum, estimate) => sum + estimate.normalMaxDamage, 0),
+    normalMaxDamagePercent: estimates.reduce(
+      (sum, estimate) => sum + estimate.normalMaxDamagePercent,
+      0
+    ),
     criticalMaxDamage: estimates.reduce((sum, estimate) => sum + estimate.criticalMaxDamage, 0),
+    criticalMaxDamagePercent: estimates.reduce(
+      (sum, estimate) => sum + estimate.criticalMaxDamagePercent,
+      0
+    ),
     accuracyPercent: Math.min(...estimates.map((estimate) => estimate.accuracyPercent)),
     missChancePercent: Math.max(...estimates.map((estimate) => estimate.missChancePercent)),
-    criticalChancePercent: Math.max(...estimates.map((estimate) => estimate.criticalChancePercent))
+    criticalChancePercent: Math.max(...estimates.map((estimate) => estimate.criticalChancePercent)),
+    koChancePercent: (
+      1 - estimates.reduce(
+        (noneKoChance, estimate) => noneKoChance * (1 - estimate.koChancePercent / 100),
+        1
+      )
+    ) * 100
   };
+}
+
+function buildDamageOutcomes(
+  normalRolls: number[],
+  criticalRolls: number[],
+  hitChance: number,
+  criticalChance: number
+): DamageOutcome[] {
+  const outcomes: DamageOutcome[] = [];
+  if (hitChance < 1) outcomes.push({ damage: 0, probability: 1 - hitChance });
+
+  const normalProbability = hitChance * (1 - criticalChance) / normalRolls.length;
+  outcomes.push(...normalRolls.map((damage) => ({ damage, probability: normalProbability })));
+
+  const criticalProbability = hitChance * criticalChance / criticalRolls.length;
+  outcomes.push(...criticalRolls.map((damage) => ({ damage, probability: criticalProbability })));
+  return mergeDamageOutcomes(outcomes);
+}
+
+function addMoveOrderChance(outcomes: DamageOutcome[], beforeChance: number): DamageOutcome[] {
+  if (beforeChance === 1) return outcomes;
+  return mergeDamageOutcomes([
+    { damage: 0, probability: 1 - beforeChance },
+    ...outcomes.map((outcome) => ({
+      damage: outcome.damage,
+      probability: outcome.probability * beforeChance
+    }))
+  ]);
+}
+
+function combineDamageOutcomes(
+  first: DamageOutcome[],
+  second: DamageOutcome[]
+): DamageOutcome[] {
+  return mergeDamageOutcomes(first.flatMap((left) =>
+    second.map((right) => ({
+      damage: left.damage + right.damage,
+      probability: left.probability * right.probability
+    }))
+  ));
+}
+
+function mergeDamageOutcomes(outcomes: DamageOutcome[]): DamageOutcome[] {
+  const probabilities = new Map<number, number>();
+  for (const outcome of outcomes) {
+    probabilities.set(
+      outcome.damage,
+      (probabilities.get(outcome.damage) ?? 0) + outcome.probability
+    );
+  }
+  return [...probabilities].map(([damage, probability]) => ({ damage, probability }));
+}
+
+function resolveMoveOrder(
+  battle: ReturnType<typeof createHydratedBattleFromState>,
+  action: Extract<LegalAction, { type: "move" }>
+) {
+  const pokemon = getShowdownPokemon(battle, action.activeSlot);
+  if (!pokemon) throw new Error(`No Showdown Pokemon exists in ${action.activeSlot}.`);
+
+  const targetLoc = toShowdownTargetLocation(action.activeSlot, action.targetSlot);
+  const resolved = battle.queue.resolveAction({
+    choice: "move",
+    pokemon,
+    moveid: action.moveId,
+    ...(targetLoc === null ? {} : { targetLoc }),
+    ...(action.specialMechanic?.kind === "megaevolution" ? { mega: true } : {}),
+    ...(action.specialMechanic?.kind === "megaevolutionx" ? { megax: true } : {}),
+    ...(action.specialMechanic?.kind === "megaevolutiony" ? { megay: true } : {}),
+    ...(action.specialMechanic?.kind === "terastallization" ? { terastallize: true } : {})
+  } as never).find((candidate) => candidate.choice === "move");
+
+  if (!resolved) throw new Error(`Could not resolve move order for ${action.moveId}.`);
+  return resolved;
+}
+
+function toShowdownTargetLocation(activeSlot: string, targetSlot: TargetSlot): number | null {
+  if (["field", "self", "allySide", "opponentSide"].includes(targetSlot)) return null;
+  const targetPosition = targetSlot.endsWith("a") ? 1 : 2;
+  return activeSlot.slice(0, 2) === targetSlot.slice(0, 2)
+    ? -targetPosition
+    : targetPosition;
 }
 
 function resolveTargetPokemon(
@@ -324,11 +547,4 @@ function formatNonPokemonTarget(targetSlot: TargetSlot, actorSpecies: string): s
 
 function average(values: number[]): number {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
-}
-
-function sumDamage(actions: PresentedAction[], key: keyof DamageEstimate): number {
-  return actions.reduce((sum, action) => {
-    const value = action.damage?.[key];
-    return sum + (typeof value === "number" ? value : 0);
-  }, 0);
 }

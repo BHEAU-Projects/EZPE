@@ -72,10 +72,10 @@ export const quickCapturePage = String.raw`<!doctype html>
     .action-line { padding: 8px 0; border-top: 1px solid #dce2e7; }
     .action-name { color: #17202a; font-size: 13px; font-weight: 800; overflow-wrap: anywhere; }
     .damage-line { color: #4f5b66; font-size: 12px; line-height: 1.45; margin-top: 3px; }
-    .worst-case { display: none; margin-top: 12px; background: #fff8f0; border: 1px solid #dfb98c; border-left: 5px solid #c35b1f; border-radius: 6px; padding: 12px; }
-    .worst-case.visible { display: block; }
-    .worst-case h3 { margin: 0 0 4px; font-size: 14px; letter-spacing: 0; }
-    .worst-case .action-line { border-top-color: #ead4bb; }
+    .plan-worst-case { margin-top: 8px; padding-top: 9px; border-top: 2px solid #d28a52; }
+    .plan-worst-case h4 { margin: 0 0 3px; color: #8a3f18; font-size: 12px; letter-spacing: 0; text-transform: uppercase; }
+    .plan-worst-case .action-line { border-top-color: #ead4bb; }
+    .plan-worst-case .score { color: #7a421f; }
     .status-line { min-height: 22px; color: #52606c; font-size: 12px; padding-top: 7px; }
     .status-line.error { color: #a12622; font-weight: 700; }
     @media (max-width: 1280px) {
@@ -135,7 +135,6 @@ export const quickCapturePage = String.raw`<!doctype html>
         </div>
       </div>
       <div class="advice-list" id="advice-list"></div>
-      <div class="worst-case" id="worst-case"></div>
       <div class="status-line" id="status-line" aria-live="polite"></div>
     </section>
   </main>
@@ -448,9 +447,9 @@ export const quickCapturePage = String.raw`<!doctype html>
             element("div", "score", "Plan score " + round(result.score) + " | expected " + round(result.expectedScore) + " | worst " + round(result.worstCaseScore))
           );
           result.actions.forEach(function(action) { card.appendChild(renderAdviceAction(action, false)); });
+          card.appendChild(renderWorstCase(result.worstCase));
           list.appendChild(card);
         });
-        renderWorstCase(body.worstCase);
         setStatus(body.totalPlans + " plans ranked in " + Math.round(body.elapsedMs) + " ms.");
       } catch (error) {
         setStatus(error.message, true);
@@ -478,8 +477,10 @@ export const quickCapturePage = String.raw`<!doctype html>
           "div",
           "damage-line",
           incoming
-            ? "Expected " + oneDecimal(action.damage.expectedDamage) + " HP | critical max " + action.damage.criticalMaxDamage + " HP | hit " + oneDecimal(action.damage.accuracyPercent) + "% | miss " + oneDecimal(action.damage.missChancePercent) + "% | crit " + oneDecimal(action.damage.criticalChancePercent) + "%"
-            : "Expected damage " + oneDecimal(action.damage.expectedDamage) + " HP | normal " + action.damage.normalMinDamage + "-" + action.damage.normalMaxDamage + " HP | accuracy " + oneDecimal(action.damage.accuracyPercent) + "% | crit " + oneDecimal(action.damage.criticalChancePercent) + "%"
+            ? action.actionChancePercent === 0
+              ? "Cannot act: KO'd before its move"
+              : "Expected incoming " + oneDecimal(action.adjustedExpectedDamage) + " HP | critical max " + action.damage.criticalMaxDamage + " HP | can act " + oneDecimal(action.actionChancePercent) + "% | hit " + oneDecimal(action.damage.accuracyPercent) + "% | miss " + oneDecimal(action.damage.missChancePercent) + "% | crit " + oneDecimal(action.damage.criticalChancePercent) + "%"
+            : "Expected damage " + oneDecimal(action.damage.expectedDamagePercent) + "% | normal " + oneDecimal(action.damage.normalMinDamagePercent) + "-" + oneDecimal(action.damage.normalMaxDamagePercent) + "% | critical max " + oneDecimal(action.damage.criticalMaxDamagePercent) + "% | KO " + oneDecimal(action.damage.koChancePercent) + "% | hit " + oneDecimal(action.damage.accuracyPercent) + "% | miss " + oneDecimal(action.damage.missChancePercent) + "% | crit " + oneDecimal(action.damage.criticalChancePercent) + "%"
         ));
       } else {
         row.appendChild(element("div", "damage-line", "No direct damage"));
@@ -488,18 +489,17 @@ export const quickCapturePage = String.raw`<!doctype html>
     }
 
     function renderWorstCase(worstCase) {
-      var wrapper = document.getElementById("worst-case");
-      wrapper.replaceChildren();
-      wrapper.className = "worst-case visible";
-      wrapper.appendChild(element("h3", "", "Worst enemy damage"));
+      var wrapper = element("section", "plan-worst-case");
+      wrapper.appendChild(element("h4", "", "Worst enemy response"));
       worstCase.actions.forEach(function(action) {
         wrapper.appendChild(renderAdviceAction(action, true));
       });
       wrapper.appendChild(element(
         "div",
         "score",
-        "Combined expected " + oneDecimal(worstCase.totalExpectedDamage) + " HP | combined critical maximum " + worstCase.totalCriticalMaxDamage + " HP"
+        "Combined expected incoming " + oneDecimal(worstCase.totalExpectedDamage) + " HP | possible critical maximum " + worstCase.totalCriticalMaxDamage + " HP"
       ));
+      return wrapper;
     }
 
     function oneDecimal(value) { return Math.round(value * 10) / 10; }

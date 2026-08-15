@@ -41,21 +41,22 @@ export function registerSessionRoutes(app: FastifyInstance, session: BattleSessi
     try {
       const startedAt = performance.now();
       const results = session.rank({ maxOpponentPlans: input.data.maxOpponentPlans });
-      const elapsedMs = performance.now() - startedAt;
       const presenter = new AdvicePresenter(session.getState());
+      const presentedResults = results.slice(0, input.data.top).map((result) => ({
+        rank: result.rank,
+        actions: presenter.presentPlan(result.actionPlan),
+        worstCase: presenter.findWorstEnemyDamagePlan(result.actionPlan),
+        score: result.score,
+        confidence: result.confidence,
+        expectedScore: result.debug.opponentEvaluation.expectedScore,
+        worstCaseScore: result.debug.opponentEvaluation.worstCaseScore
+      }));
+      const elapsedMs = performance.now() - startedAt;
 
       return {
         elapsedMs,
         totalPlans: results.length,
-        worstCase: presenter.findWorstEnemyDamagePlan(),
-        results: results.slice(0, input.data.top).map((result) => ({
-          rank: result.rank,
-          actions: presenter.presentPlan(result.actionPlan),
-          score: result.score,
-          confidence: result.confidence,
-          expectedScore: result.debug.opponentEvaluation.expectedScore,
-          worstCaseScore: result.debug.opponentEvaluation.worstCaseScore
-        }))
+        results: presentedResults
       };
     } catch (error) {
       return reply.code(400).send({ error: formatError(error) });

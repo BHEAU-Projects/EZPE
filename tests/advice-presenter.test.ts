@@ -43,10 +43,13 @@ describe("advice presentation", () => {
         accuracyPercent: 100,
         missChancePercent: 0,
         expectedDamage: expect.any(Number),
+        expectedDamagePercent: expect.any(Number),
+        koChancePercent: expect.any(Number),
         criticalMaxDamage: expect.any(Number)
       }
     });
     expect(actions[0].damage!.expectedDamage).toBeGreaterThan(0);
+    expect(actions[0].damage!.expectedDamagePercent).toBeGreaterThan(0);
     expect(actions[1]).toMatchObject({
       actorSpecies: "Bulbasaur",
       moveName: "Tackle",
@@ -68,15 +71,51 @@ describe("advice presentation", () => {
     expect(thunder.damage!.criticalMaxDamage).toBeGreaterThan(thunder.damage!.normalMaxDamage);
   });
 
-  it("finds enemy actions with the highest critical damage and names their targets", () => {
+  it("finds a worst enemy response for a specific recommended turn", () => {
     const presenter = new AdvicePresenter(singleTurnBattleState);
-    const worstCase = presenter.findWorstEnemyDamagePlan();
+    const worstCase = presenter.findWorstEnemyDamagePlan(
+      planWithMoves("thunderbolt", "tackle")
+    );
 
     expect(worstCase.actions).toHaveLength(2);
     expect(worstCase.actions.every((action) => action.actorSpecies.length > 0)).toBe(true);
     expect(worstCase.actions.every((action) => action.targetSpecies.length > 0)).toBe(true);
+    expect(worstCase.actions.every((action) => action.actionChancePercent >= 0)).toBe(true);
     expect(worstCase.totalCriticalMaxDamage).toBeGreaterThanOrEqual(
       worstCase.totalExpectedDamage
+    );
+  });
+
+  it("removes a faster enemy move when the recommended move guarantees the KO", () => {
+    const state = structuredClone(singleTurnBattleState);
+    state.teams.p1.active[0].set.stats.spe = 120;
+    state.teams.p2.active[0].set.stats.spe = 40;
+    state.teams.p2.active[0].hp = { unit: "percent", percent: 10 };
+    const presenter = new AdvicePresenter(state);
+
+    const worstCase = presenter.findWorstEnemyDamagePlan(
+      planWithMoves("thunderbolt", "tackle")
+    );
+    const squirtleAction = worstCase.actions.find((action) => action.actorSlot === "p2a");
+
+    expect(squirtleAction?.actionChancePercent).toBe(0);
+    expect(squirtleAction?.adjustedExpectedDamage).toBe(0);
+  });
+
+  it("keeps the enemy move in proportion to the recommended move's miss chance", () => {
+    const state = structuredClone(singleTurnBattleState);
+    state.teams.p1.active[0].set.moveIds = ["thunder", "protect"];
+    state.teams.p1.active[0].set.stats.spe = 120;
+    state.teams.p2.active[0].set.stats.spe = 40;
+    state.teams.p2.active[0].hp = { unit: "percent", percent: 10 };
+    const presenter = new AdvicePresenter(state);
+
+    const worstCase = presenter.findWorstEnemyDamagePlan(planWithMoves("thunder", "tackle"));
+    const squirtleAction = worstCase.actions.find((action) => action.actorSlot === "p2a");
+
+    expect(squirtleAction?.actionChancePercent).toBeCloseTo(30);
+    expect(squirtleAction?.adjustedExpectedDamage).toBeCloseTo(
+      (squirtleAction?.damage?.expectedDamage ?? 0) * 0.3
     );
   });
 

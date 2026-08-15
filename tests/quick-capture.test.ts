@@ -79,11 +79,6 @@ describe("Quick Capture server", () => {
     expect(response.json()).toMatchObject({
       totalPlans: expect.any(Number),
       elapsedMs: expect.any(Number),
-      worstCase: {
-        actions: expect.any(Array),
-        totalExpectedDamage: expect.any(Number),
-        totalCriticalMaxDamage: expect.any(Number)
-      },
       results: [
         {
           rank: 1,
@@ -91,7 +86,11 @@ describe("Quick Capture server", () => {
             {
               actorSpecies: "Pikachu",
               moveName: expect.any(String),
-              targetSpecies: expect.any(String)
+              targetSpecies: expect.any(String),
+              damage: {
+                expectedDamagePercent: expect.any(Number),
+                koChancePercent: expect.any(Number)
+              }
             },
             {
               actorSpecies: "Bulbasaur",
@@ -99,6 +98,18 @@ describe("Quick Capture server", () => {
               targetSpecies: expect.any(String)
             }
           ],
+          worstCase: {
+            actions: expect.arrayContaining([
+              expect.objectContaining({
+                actorSpecies: expect.any(String),
+                targetSpecies: expect.any(String),
+                actionChancePercent: expect.any(Number),
+                adjustedExpectedDamage: expect.any(Number)
+              })
+            ]),
+            totalExpectedDamage: expect.any(Number),
+            totalCriticalMaxDamage: expect.any(Number)
+          },
           expectedScore: expect.any(Number),
           worstCaseScore: expect.any(Number)
         }
