@@ -1,0 +1,2208 @@
+{
+  "id": "smogon-gen9championsvgc2026regmb-1760-2026-06",
+  "regulationId": "champions-m-b",
+  "formatId": "gen9championsvgc2026regmb",
+  "dataPeriod": "2026-06",
+  "ratingCutoff": 1760,
+  "sourceUrl": "https://www.smogon.com/stats/2026-06/chaos/gen9championsvgc2026regmb-1760.json",
+  "retrievedOn": "2026-08-15",
+  "pokemon": {
+    "abomasnow": {
+      "moveIds": [
+        "blizzard",
+        "auroraveil",
+        "protect",
+        "gigadrain"
+      ]
+    },
+    "abomasnowmega": {
+      "moveIds": [
+        "blizzard",
+        "energyball",
+        "earthpower",
+        "protect"
+      ]
+    },
+    "absol": {
+      "moveIds": [
+        "suckerpunch",
+        "swordsdance",
+        "closecombat",
+        "knockoff"
+      ]
+    },
+    "aegislash": {
+      "moveIds": [
+        "kingsshield",
+        "shadowsneak",
+        "poltergeist",
+        "ironhead"
+      ]
+    },
+    "aerodactyl": {
+      "moveIds": [
+        "rockslide",
+        "tailwind",
+        "dualwingbeat",
+        "protect"
+      ]
+    },
+    "aerodactylmega": {
+      "moveIds": [
+        "rockslide",
+        "dualwingbeat",
+        "tailwind",
+        "protect"
+      ]
+    },
+    "aggronmega": {
+      "moveIds": [
+        "bodypress",
+        "heavyslam",
+        "irondefense",
+        "protect"
+      ]
+    },
+    "alakazam": {
+      "moveIds": [
+        "psychic",
+        "protect",
+        "speedswap",
+        "dazzlinggleam"
+      ]
+    },
+    "alakazammega": {
+      "moveIds": [
+        "protect",
+        "expandingforce",
+        "focusblast",
+        "dazzlinggleam"
+      ]
+    },
+    "alcremie": {
+      "moveIds": [
+        "dazzlinggleam",
+        "decorate",
+        "protect",
+        "encore"
+      ]
+    },
+    "altaria": {
+      "moveIds": [
+        "willowisp",
+        "tailwind",
+        "protect",
+        "bravebird"
+      ]
+    },
+    "altariamega": {
+      "moveIds": [
+        "protect",
+        "hypervoice",
+        "tailwind",
+        "roost"
+      ]
+    },
+    "ampharosmega": {
+      "moveIds": [
+        "dragonpulse",
+        "protect",
+        "thunderbolt",
+        "cottonguard"
+      ]
+    },
+    "annihilape": {
+      "moveIds": [
+        "ragefist",
+        "protect",
+        "drainpunch",
+        "bulkup"
+      ]
+    },
+    "appletun": {
+      "moveIds": [
+        "appleacid",
+        "protect",
+        "dragonpulse",
+        "leechseed"
+      ]
+    },
+    "araquanid": {
+      "moveIds": [
+        "liquidation",
+        "wideguard",
+        "protect",
+        "leechlife"
+      ]
+    },
+    "arbok": {
+      "moveIds": [
+        "glare",
+        "gunkshot",
+        "protect",
+        "poisonjab"
+      ]
+    },
+    "arcanine": {
+      "moveIds": [
+        "extremespeed",
+        "flareblitz",
+        "protect",
+        "willowisp"
+      ]
+    },
+    "arcaninehisui": {
+      "moveIds": [
+        "flareblitz",
+        "protect",
+        "rockslide",
+        "extremespeed"
+      ]
+    },
+    "archaludon": {
+      "moveIds": [
+        "electroshot",
+        "protect",
+        "flashcannon",
+        "dragonpulse"
+      ]
+    },
+    "ariados": {
+      "moveIds": [
+        "ragepowder",
+        "stringshot",
+        "protect",
+        "knockoff"
+      ]
+    },
+    "armarouge": {
+      "moveIds": [
+        "trickroom",
+        "armorcannon",
+        "protect",
+        "psychic"
+      ]
+    },
+    "aromatisse": {
+      "moveIds": [
+        "trickroom",
+        "moonblast",
+        "healpulse",
+        "faketears"
+      ]
+    },
+    "audino": {
+      "moveIds": [
+        "trickroom",
+        "simplebeam",
+        "protect",
+        "yawn"
+      ]
+    },
+    "audinomega": {
+      "moveIds": [
+        "dazzlinggleam",
+        "trickroom",
+        "calmmind",
+        "simplebeam"
+      ]
+    },
+    "aurorus": {
+      "moveIds": [
+        "protect",
+        "freezedry",
+        "ancientpower",
+        "blizzard"
+      ]
+    },
+    "avalugghisui": {
+      "moveIds": [
+        "rockslide",
+        "bodypress",
+        "protect",
+        "wideguard"
+      ]
+    },
+    "azumarill": {
+      "moveIds": [
+        "aquajet",
+        "playrough",
+        "protect",
+        "bellydrum"
+      ]
+    },
+    "banettemega": {
+      "moveIds": [
+        "poltergeist",
+        "destinybond",
+        "encore",
+        "willowisp"
+      ]
+    },
+    "barbaracle": {
+      "moveIds": [
+        "rockslide",
+        "protect",
+        "liquidation",
+        "aquacutter"
+      ]
+    },
+    "barbaraclemega": {
+      "moveIds": [
+        "rockslide",
+        "closecombat",
+        "protect",
+        "shellsmash"
+      ]
+    },
+    "basculegion": {
+      "moveIds": [
+        "lastrespects",
+        "aquajet",
+        "wavecrash",
+        "protect"
+      ]
+    },
+    "basculegionf": {
+      "moveIds": [
+        "shadowball",
+        "muddywater",
+        "protect",
+        "icebeam"
+      ]
+    },
+    "bastiodon": {
+      "moveIds": [
+        "bodypress",
+        "protect",
+        "wideguard",
+        "irondefense"
+      ]
+    },
+    "beartic": {
+      "moveIds": [
+        "iciclecrash",
+        "closecombat",
+        "protect",
+        "rockslide"
+      ]
+    },
+    "beedrillmega": {
+      "moveIds": [
+        "poisonjab",
+        "protect",
+        "uturn",
+        "drillrun"
+      ]
+    },
+    "bellibolt": {
+      "moveIds": [
+        "paraboliccharge",
+        "protect",
+        "soak",
+        "thunderbolt"
+      ]
+    },
+    "blastoise": {
+      "moveIds": [
+        "fakeout",
+        "protect",
+        "yawn",
+        "flipturn"
+      ]
+    },
+    "blastoisemega": {
+      "moveIds": [
+        "waterspout",
+        "darkpulse",
+        "shellsmash",
+        "protect"
+      ]
+    },
+    "blaziken": {
+      "moveIds": [
+        "coaching",
+        "protect",
+        "aurasphere",
+        "heatwave"
+      ]
+    },
+    "blazikenmega": {
+      "moveIds": [
+        "flareblitz",
+        "closecombat",
+        "rockslide",
+        "protect"
+      ]
+    },
+    "cameruptmega": {
+      "moveIds": [
+        "earthpower",
+        "protect",
+        "heatwave",
+        "ancientpower"
+      ]
+    },
+    "ceruledge": {
+      "moveIds": [
+        "bitterblade",
+        "shadowsneak",
+        "protect",
+        "bulkup"
+      ]
+    },
+    "chandelure": {
+      "moveIds": [
+        "shadowball",
+        "heatwave",
+        "protect",
+        "trickroom"
+      ]
+    },
+    "chandeluremega": {
+      "moveIds": [
+        "heatwave",
+        "protect",
+        "shadowball",
+        "trickroom"
+      ]
+    },
+    "charizard": {
+      "moveIds": [
+        "heatwave",
+        "solarbeam",
+        "weatherball",
+        "protect"
+      ]
+    },
+    "charizardmegax": {
+      "moveIds": [
+        "dragonclaw",
+        "flareblitz",
+        "protect",
+        "dragondance"
+      ]
+    },
+    "charizardmegay": {
+      "moveIds": [
+        "protect",
+        "heatwave",
+        "solarbeam",
+        "weatherball"
+      ]
+    },
+    "chesnaught": {
+      "moveIds": [
+        "bodypress",
+        "seedbomb",
+        "wideguard",
+        "protect"
+      ]
+    },
+    "chesnaughtmega": {
+      "moveIds": [
+        "bodypress",
+        "spikyshield",
+        "irondefense",
+        "woodhammer"
+      ]
+    },
+    "chimechomega": {
+      "moveIds": [
+        "trickroom",
+        "flashcannon",
+        "psychic",
+        "protect"
+      ]
+    },
+    "clawitzer": {
+      "moveIds": [
+        "waterpulse",
+        "aurasphere",
+        "darkpulse",
+        "protect"
+      ]
+    },
+    "clefable": {
+      "moveIds": [
+        "followme",
+        "moonblast",
+        "protect",
+        "helpinghand"
+      ]
+    },
+    "clefablemega": {
+      "moveIds": [
+        "followme",
+        "moonblast",
+        "protect",
+        "airslash"
+      ]
+    },
+    "cofagrigus": {
+      "moveIds": [
+        "trickroom",
+        "willowisp",
+        "shadowball",
+        "haze"
+      ]
+    },
+    "conkeldurr": {
+      "moveIds": [
+        "machpunch",
+        "drainpunch",
+        "protect",
+        "thunderpunch"
+      ]
+    },
+    "corviknight": {
+      "moveIds": [
+        "bravebird",
+        "tailwind",
+        "roost",
+        "ironhead"
+      ]
+    },
+    "crabominable": {
+      "moveIds": [
+        "icehammer",
+        "closecombat",
+        "wideguard",
+        "rockslide"
+      ]
+    },
+    "crabominablemega": {
+      "moveIds": [
+        "icehammer",
+        "protect",
+        "drainpunch",
+        "machpunch"
+      ]
+    },
+    "decidueye": {
+      "moveIds": [
+        "spiritshackle",
+        "leafblade",
+        "protect",
+        "swordsdance"
+      ]
+    },
+    "decidueyehisui": {
+      "moveIds": [
+        "leafblade",
+        "triplearrows",
+        "protect",
+        "suckerpunch"
+      ]
+    },
+    "delphoxmega": {
+      "moveIds": [
+        "heatwave",
+        "protect",
+        "nastyplot",
+        "psyshock"
+      ]
+    },
+    "diggersby": {
+      "moveIds": [
+        "protect",
+        "quickattack",
+        "rockslide",
+        "highhorsepower"
+      ]
+    },
+    "ditto": {
+      "moveIds": [
+        "transform"
+      ]
+    },
+    "dragalge": {
+      "moveIds": [
+        "protect",
+        "sludgebomb",
+        "dracometeor",
+        "sludgewave"
+      ]
+    },
+    "dragalgemega": {
+      "moveIds": [
+        "sludgebomb",
+        "protect",
+        "dracometeor",
+        "flipturn"
+      ]
+    },
+    "dragapult": {
+      "moveIds": [
+        "protect",
+        "dracometeor",
+        "willowisp",
+        "hex"
+      ]
+    },
+    "dragonite": {
+      "moveIds": [
+        "extremespeed",
+        "dragonclaw",
+        "protect",
+        "lowkick"
+      ]
+    },
+    "dragonitemega": {
+      "moveIds": [
+        "protect",
+        "dragonpulse",
+        "hurricane",
+        "tailwind"
+      ]
+    },
+    "drampa": {
+      "moveIds": [
+        "hypervoice",
+        "protect",
+        "earthpower",
+        "dracometeor"
+      ]
+    },
+    "drampamega": {
+      "moveIds": [
+        "hypervoice",
+        "protect",
+        "earthpower",
+        "dracometeor"
+      ]
+    },
+    "eelektross": {
+      "moveIds": [
+        "protect",
+        "gigadrain",
+        "voltswitch",
+        "discharge"
+      ]
+    },
+    "eelektrossmega": {
+      "moveIds": [
+        "protect",
+        "thunderbolt",
+        "flamethrower",
+        "gigadrain"
+      ]
+    },
+    "emboarmega": {
+      "moveIds": [
+        "flareblitz",
+        "drainpunch",
+        "protect",
+        "suckerpunch"
+      ]
+    },
+    "emolga": {
+      "moveIds": [
+        "encore",
+        "nuzzle",
+        "airslash",
+        "electroweb"
+      ]
+    },
+    "empoleon": {
+      "moveIds": [
+        "flashcannon",
+        "protect",
+        "hydropump",
+        "icebeam"
+      ]
+    },
+    "espathra": {
+      "moveIds": [
+        "protect",
+        "luminacrash",
+        "calmmind",
+        "batonpass"
+      ]
+    },
+    "espeon": {
+      "moveIds": [
+        "trickroom",
+        "detect",
+        "psyshock",
+        "helpinghand"
+      ]
+    },
+    "excadrill": {
+      "moveIds": [
+        "ironhead",
+        "protect",
+        "rockslide",
+        "earthquake"
+      ]
+    },
+    "excadrillmega": {
+      "moveIds": [
+        "protect",
+        "ironhead",
+        "rockslide",
+        "highhorsepower"
+      ]
+    },
+    "falinksmega": {
+      "moveIds": [
+        "closecombat",
+        "noretreat",
+        "protect",
+        "rockslide"
+      ]
+    },
+    "farigiraf": {
+      "moveIds": [
+        "trickroom",
+        "helpinghand",
+        "psychic",
+        "protect"
+      ]
+    },
+    "feraligatr": {
+      "moveIds": [
+        "liquidation",
+        "protect",
+        "icepunch",
+        "dragondance"
+      ]
+    },
+    "feraligatrmega": {
+      "moveIds": [
+        "protect",
+        "liquidation",
+        "doubleedge",
+        "dragondance"
+      ]
+    },
+    "flapple": {
+      "moveIds": [
+        "gravapple",
+        "dragonrush",
+        "protect",
+        "dragondance"
+      ]
+    },
+    "flareon": {
+      "moveIds": [
+        "flareblitz",
+        "superpower",
+        "detect",
+        "roar"
+      ]
+    },
+    "floetteeternal": {
+      "moveIds": [
+        "dazzlinggleam",
+        "lightofruin",
+        "moonblast",
+        "protect"
+      ]
+    },
+    "floettemega": {
+      "moveIds": [
+        "protect",
+        "dazzlinggleam",
+        "moonblast",
+        "lightofruin"
+      ]
+    },
+    "florges": {
+      "moveIds": [
+        "moonblast",
+        "pollenpuff",
+        "protect",
+        "helpinghand"
+      ]
+    },
+    "froslass": {
+      "moveIds": [
+        "blizzard",
+        "protect",
+        "willowisp",
+        "auroraveil"
+      ]
+    },
+    "froslassmega": {
+      "moveIds": [
+        "blizzard",
+        "protect",
+        "shadowball",
+        "auroraveil"
+      ]
+    },
+    "gallade": {
+      "moveIds": [
+        "sacredsword",
+        "psychocut",
+        "trickroom",
+        "leafblade"
+      ]
+    },
+    "gallademega": {
+      "moveIds": [
+        "psychocut",
+        "sacredsword",
+        "protect",
+        "trickroom"
+      ]
+    },
+    "garchomp": {
+      "moveIds": [
+        "dragonclaw",
+        "rockslide",
+        "earthquake",
+        "protect"
+      ]
+    },
+    "garchompmega": {
+      "moveIds": [
+        "protect",
+        "earthquake",
+        "rockslide",
+        "dragonclaw"
+      ]
+    },
+    "gardevoir": {
+      "moveIds": [
+        "moonblast",
+        "dazzlinggleam",
+        "psychic",
+        "aurasphere"
+      ]
+    },
+    "gardevoirmega": {
+      "moveIds": [
+        "hypervoice",
+        "protect",
+        "psychic",
+        "trickroom"
+      ]
+    },
+    "garganacl": {
+      "moveIds": [
+        "saltcure",
+        "protect",
+        "bodypress",
+        "wideguard"
+      ]
+    },
+    "gengar": {
+      "moveIds": [
+        "shadowball",
+        "sludgebomb",
+        "protect",
+        "icywind"
+      ]
+    },
+    "gengarmega": {
+      "moveIds": [
+        "protect",
+        "shadowball",
+        "perishsong",
+        "sludgebomb"
+      ]
+    },
+    "gholdengo": {
+      "moveIds": [
+        "shadowball",
+        "makeitrain",
+        "protect",
+        "nastyplot"
+      ]
+    },
+    "glaceon": {
+      "moveIds": [
+        "freezedry",
+        "blizzard",
+        "protect",
+        "shadowball"
+      ]
+    },
+    "glaliemega": {
+      "moveIds": [
+        "explosion",
+        "protect",
+        "bodyslam",
+        "iceshard"
+      ]
+    },
+    "glimmora": {
+      "moveIds": [
+        "powergem",
+        "sludgebomb",
+        "earthpower",
+        "spikyshield"
+      ]
+    },
+    "glimmoramega": {
+      "moveIds": [
+        "powergem",
+        "sludgebomb",
+        "spikyshield",
+        "earthpower"
+      ]
+    },
+    "gliscor": {
+      "moveIds": [
+        "tailwind",
+        "highhorsepower",
+        "protect",
+        "acrobatics"
+      ]
+    },
+    "golurk": {
+      "moveIds": [
+        "poltergeist",
+        "protect",
+        "headlongrush",
+        "heavyslam"
+      ]
+    },
+    "golurkmega": {
+      "moveIds": [
+        "protect",
+        "poltergeist",
+        "headlongrush",
+        "icepunch"
+      ]
+    },
+    "goodra": {
+      "moveIds": [
+        "flamethrower",
+        "dracometeor",
+        "sludgebomb",
+        "thunderbolt"
+      ]
+    },
+    "goodrahisui": {
+      "moveIds": [
+        "bodypress",
+        "shelter",
+        "protect",
+        "flashcannon"
+      ]
+    },
+    "gourgeistsuper": {
+      "moveIds": [
+        "trickroom",
+        "willowisp",
+        "trickortreat",
+        "seedbomb"
+      ]
+    },
+    "greninja": {
+      "moveIds": [
+        "icebeam",
+        "darkpulse",
+        "protect",
+        "rockslide"
+      ]
+    },
+    "greninjamega": {
+      "moveIds": [
+        "darkpulse",
+        "protect",
+        "icebeam",
+        "blizzard"
+      ]
+    },
+    "grimmsnarl": {
+      "moveIds": [
+        "partingshot",
+        "reflect",
+        "lightscreen",
+        "spiritbreak"
+      ]
+    },
+    "gyarados": {
+      "moveIds": [
+        "waterfall",
+        "protect",
+        "powerwhip",
+        "thunderwave"
+      ]
+    },
+    "gyaradosmega": {
+      "moveIds": [
+        "waterfall",
+        "protect",
+        "dragondance",
+        "crunch"
+      ]
+    },
+    "hatterene": {
+      "moveIds": [
+        "dazzlinggleam",
+        "trickroom",
+        "protect",
+        "psychic"
+      ]
+    },
+    "hawlucha": {
+      "moveIds": [
+        "closecombat",
+        "protect",
+        "bravebird",
+        "coaching"
+      ]
+    },
+    "hawluchamega": {
+      "moveIds": [
+        "entrainment",
+        "bravebird",
+        "closecombat",
+        "protect"
+      ]
+    },
+    "heliolisk": {
+      "moveIds": [
+        "hypervoice",
+        "voltswitch",
+        "thunderbolt",
+        "discharge"
+      ]
+    },
+    "heracrossmega": {
+      "moveIds": [
+        "closecombat",
+        "rockblast",
+        "pinmissile",
+        "detect"
+      ]
+    },
+    "hippowdon": {
+      "moveIds": [
+        "protect",
+        "highhorsepower",
+        "yawn",
+        "slackoff"
+      ]
+    },
+    "houndoom": {
+      "moveIds": [
+        "heatwave",
+        "protect",
+        "darkpulse",
+        "feint"
+      ]
+    },
+    "houndoommega": {
+      "moveIds": [
+        "protect",
+        "darkpulse",
+        "heatwave",
+        "sludgebomb"
+      ]
+    },
+    "houndstone": {
+      "moveIds": [
+        "lastrespects",
+        "willowisp",
+        "protect",
+        "allyswitch"
+      ]
+    },
+    "hydrapple": {
+      "moveIds": [
+        "protect",
+        "ficklebeam",
+        "earthpower",
+        "energyball"
+      ]
+    },
+    "hydreigon": {
+      "moveIds": [
+        "darkpulse",
+        "dracometeor",
+        "snarl",
+        "earthpower"
+      ]
+    },
+    "incineroar": {
+      "moveIds": [
+        "fakeout",
+        "partingshot",
+        "flareblitz",
+        "throatchop"
+      ]
+    },
+    "infernape": {
+      "moveIds": [
+        "fakeout",
+        "closecombat",
+        "heatwave",
+        "overheat"
+      ]
+    },
+    "jolteon": {
+      "moveIds": [
+        "protect",
+        "voltswitch",
+        "thunderbolt",
+        "risingvoltage"
+      ]
+    },
+    "kangaskhan": {
+      "moveIds": [
+        "fakeout",
+        "lastresort",
+        "doubleedge",
+        "icepunch"
+      ]
+    },
+    "kangaskhanmega": {
+      "moveIds": [
+        "fakeout",
+        "doubleedge",
+        "icepunch",
+        "suckerpunch"
+      ]
+    },
+    "kingambit": {
+      "moveIds": [
+        "suckerpunch",
+        "kowtowcleave",
+        "protect",
+        "ironhead"
+      ]
+    },
+    "kleavor": {
+      "moveIds": [
+        "stoneaxe",
+        "xscissor",
+        "closecombat",
+        "rockslide"
+      ]
+    },
+    "klefki": {
+      "moveIds": [
+        "lightscreen",
+        "reflect",
+        "dazzlinggleam",
+        "trickroom"
+      ]
+    },
+    "kommoo": {
+      "moveIds": [
+        "protect",
+        "clangingscales",
+        "aurasphere",
+        "clangoroussoul"
+      ]
+    },
+    "krookodile": {
+      "moveIds": [
+        "knockoff",
+        "earthquake",
+        "highhorsepower",
+        "protect"
+      ]
+    },
+    "leafeon": {
+      "moveIds": [
+        "leafblade",
+        "solarblade",
+        "knockoff",
+        "detect"
+      ]
+    },
+    "liepard": {
+      "moveIds": [
+        "fakeout",
+        "encore",
+        "knockoff",
+        "charm"
+      ]
+    },
+    "lopunnymega": {
+      "moveIds": [
+        "fakeout",
+        "closecombat",
+        "encore",
+        "protect"
+      ]
+    },
+    "lucario": {
+      "moveIds": [
+        "finalgambit",
+        "closecombat",
+        "meteormash",
+        "helpinghand"
+      ]
+    },
+    "lucariomega": {
+      "moveIds": [
+        "protect",
+        "meteormash",
+        "closecombat",
+        "aurasphere"
+      ]
+    },
+    "luxray": {
+      "moveIds": [
+        "snarl",
+        "voltswitch",
+        "discharge",
+        "electroweb"
+      ]
+    },
+    "lycanroc": {
+      "moveIds": [
+        "rockslide",
+        "protect",
+        "endeavor",
+        "accelerock"
+      ]
+    },
+    "lycanrocdusk": {
+      "moveIds": [
+        "accelerock",
+        "protect",
+        "rockslide",
+        "closecombat"
+      ]
+    },
+    "lycanrocmidnight": {
+      "moveIds": [
+        "protect",
+        "closecombat",
+        "stoneedge",
+        "suckerpunch"
+      ]
+    },
+    "machamp": {
+      "moveIds": [
+        "dynamicpunch",
+        "wideguard",
+        "knockoff",
+        "rockslide"
+      ]
+    },
+    "malamar": {
+      "moveIds": [
+        "superpower",
+        "trickroom",
+        "knockoff",
+        "protect"
+      ]
+    },
+    "malamarmega": {
+      "moveIds": [
+        "superpower",
+        "protect",
+        "knockoff",
+        "psychocut"
+      ]
+    },
+    "mamoswine": {
+      "moveIds": [
+        "iceshard",
+        "protect",
+        "highhorsepower",
+        "iciclecrash"
+      ]
+    },
+    "manectric": {
+      "moveIds": [
+        "voltswitch",
+        "protect",
+        "thunderbolt",
+        "snarl"
+      ]
+    },
+    "manectricmega": {
+      "moveIds": [
+        "protect",
+        "voltswitch",
+        "snarl",
+        "thunderbolt"
+      ]
+    },
+    "maushold": {
+      "moveIds": [
+        "followme",
+        "protect",
+        "superfang",
+        "populationbomb"
+      ]
+    },
+    "mawilemega": {
+      "moveIds": [
+        "playrough",
+        "suckerpunch",
+        "protect",
+        "ironhead"
+      ]
+    },
+    "medicham": {
+      "moveIds": [
+        "fakeout",
+        "closecombat",
+        "zenheadbutt",
+        "trickroom"
+      ]
+    },
+    "medichammega": {
+      "moveIds": [
+        "fakeout",
+        "closecombat",
+        "psychocut",
+        "protect"
+      ]
+    },
+    "meganiummega": {
+      "moveIds": [
+        "solarbeam",
+        "weatherball",
+        "protect",
+        "dazzlinggleam"
+      ]
+    },
+    "meowscarada": {
+      "moveIds": [
+        "flowertrick",
+        "knockoff",
+        "tripleaxel",
+        "protect"
+      ]
+    },
+    "meowstic": {
+      "moveIds": [
+        "fakeout",
+        "psychicterrain",
+        "expandingforce",
+        "reflect"
+      ]
+    },
+    "meowsticfmega": {
+      "moveIds": [
+        "protect",
+        "psychic",
+        "thunderbolt",
+        "energyball"
+      ]
+    },
+    "meowsticmmega": {
+      "moveIds": [
+        "expandingforce",
+        "psychicterrain",
+        "fakeout",
+        "skillswap"
+      ]
+    },
+    "metagross": {
+      "moveIds": [
+        "psychicfangs",
+        "protect",
+        "bulletpunch",
+        "meteormash"
+      ]
+    },
+    "metagrossmega": {
+      "moveIds": [
+        "protect",
+        "psychicfangs",
+        "ironhead",
+        "bulletpunch"
+      ]
+    },
+    "milotic": {
+      "moveIds": [
+        "protect",
+        "muddywater",
+        "coil",
+        "hypnosis"
+      ]
+    },
+    "mimikyu": {
+      "moveIds": [
+        "playrough",
+        "trickroom",
+        "shadowsneak",
+        "swordsdance"
+      ]
+    },
+    "morpeko": {
+      "moveIds": [
+        "aurawheel",
+        "fakeout",
+        "protect",
+        "partingshot"
+      ]
+    },
+    "mrrime": {
+      "moveIds": [
+        "fakeout",
+        "freezedry",
+        "psychic",
+        "trickroom"
+      ]
+    },
+    "mudsdale": {
+      "moveIds": [
+        "highhorsepower",
+        "protect",
+        "rockslide",
+        "earthquake"
+      ]
+    },
+    "musharna": {
+      "moveIds": [
+        "trickroom",
+        "psychic",
+        "helpinghand",
+        "protect"
+      ]
+    },
+    "ninetales": {
+      "moveIds": [
+        "heatwave",
+        "faketears",
+        "solarbeam",
+        "overheat"
+      ]
+    },
+    "ninetalesalola": {
+      "moveIds": [
+        "blizzard",
+        "protect",
+        "freezedry",
+        "auroraveil"
+      ]
+    },
+    "noivern": {
+      "moveIds": [
+        "tailwind",
+        "dracometeor",
+        "protect",
+        "superfang"
+      ]
+    },
+    "oranguru": {
+      "moveIds": [
+        "instruct",
+        "trickroom",
+        "protect",
+        "psychic"
+      ]
+    },
+    "orthworm": {
+      "moveIds": [
+        "bodypress",
+        "shedtail",
+        "protect",
+        "heavyslam"
+      ]
+    },
+    "overqwil": {
+      "moveIds": [
+        "protect",
+        "throatchop",
+        "poisonjab",
+        "gunkshot"
+      ]
+    },
+    "palafin": {
+      "moveIds": [
+        "jetpunch",
+        "wavecrash",
+        "protect",
+        "flipturn"
+      ]
+    },
+    "pangoro": {
+      "moveIds": [
+        "knockoff",
+        "closecombat",
+        "protect",
+        "taunt"
+      ]
+    },
+    "passimian": {
+      "moveIds": [
+        "knockoff",
+        "closecombat",
+        "gunkshot",
+        "uturn"
+      ]
+    },
+    "pelipper": {
+      "moveIds": [
+        "hurricane",
+        "weatherball",
+        "tailwind",
+        "wideguard"
+      ]
+    },
+    "pidgeotmega": {
+      "moveIds": [
+        "hurricane",
+        "heatwave",
+        "protect",
+        "tailwind"
+      ]
+    },
+    "pikachu": {
+      "moveIds": [
+        "fakeout",
+        "risingvoltage",
+        "grassknot",
+        "protect"
+      ]
+    },
+    "pinsirmega": {
+      "moveIds": [
+        "feint",
+        "protect",
+        "bodyslam",
+        "lunge"
+      ]
+    },
+    "politoed": {
+      "moveIds": [
+        "protect",
+        "weatherball",
+        "perishsong",
+        "encore"
+      ]
+    },
+    "polteageist": {
+      "moveIds": [
+        "shadowball",
+        "shellsmash",
+        "storedpower",
+        "strengthsap"
+      ]
+    },
+    "primarina": {
+      "moveIds": [
+        "hypervoice",
+        "protect",
+        "moonblast",
+        "calmmind"
+      ]
+    },
+    "pyroarmega": {
+      "moveIds": [
+        "heatwave",
+        "protect",
+        "overheat",
+        "solarbeam"
+      ]
+    },
+    "quaquaval": {
+      "moveIds": [
+        "aquastep",
+        "closecombat",
+        "protect",
+        "aquajet"
+      ]
+    },
+    "qwilfish": {
+      "moveIds": [
+        "flipturn",
+        "protect",
+        "gunkshot",
+        "taunt"
+      ]
+    },
+    "raichu": {
+      "moveIds": [
+        "fakeout",
+        "voltswitch",
+        "nuzzle",
+        "encore"
+      ]
+    },
+    "raichualola": {
+      "moveIds": [
+        "fakeout",
+        "voltswitch",
+        "thunderbolt",
+        "psyshock"
+      ]
+    },
+    "raichumegax": {
+      "moveIds": [
+        "fakeout",
+        "protect",
+        "volttackle",
+        "voltswitch"
+      ]
+    },
+    "raichumegay": {
+      "moveIds": [
+        "zapcannon",
+        "focusblast",
+        "protect",
+        "fakeout"
+      ]
+    },
+    "rampardos": {
+      "moveIds": [
+        "rockslide",
+        "protect",
+        "ironhead",
+        "thunderpunch"
+      ]
+    },
+    "reuniclus": {
+      "moveIds": [
+        "trickroom",
+        "psychic",
+        "protect",
+        "focusblast"
+      ]
+    },
+    "rhyperior": {
+      "moveIds": [
+        "rockslide",
+        "protect",
+        "highhorsepower",
+        "earthquake"
+      ]
+    },
+    "roserade": {
+      "moveIds": [
+        "sludgebomb",
+        "sleeppowder",
+        "extrasensory",
+        "leafstorm"
+      ]
+    },
+    "rotom": {
+      "moveIds": [
+        "shadowball",
+        "thunderbolt",
+        "protect",
+        "trick"
+      ]
+    },
+    "rotomfan": {
+      "moveIds": [
+        "airslash",
+        "thunderbolt",
+        "protect",
+        "electroweb"
+      ]
+    },
+    "rotomfrost": {
+      "moveIds": [
+        "blizzard",
+        "voltswitch",
+        "thunderbolt",
+        "electroweb"
+      ]
+    },
+    "rotomheat": {
+      "moveIds": [
+        "overheat",
+        "voltswitch",
+        "discharge",
+        "thunderbolt"
+      ]
+    },
+    "rotommow": {
+      "moveIds": [
+        "leafstorm",
+        "voltswitch",
+        "willowisp",
+        "protect"
+      ]
+    },
+    "rotomwash": {
+      "moveIds": [
+        "hydropump",
+        "willowisp",
+        "thunderbolt",
+        "voltswitch"
+      ]
+    },
+    "runerigus": {
+      "moveIds": [
+        "trickroom",
+        "willowisp",
+        "poltergeist",
+        "bodypress"
+      ]
+    },
+    "sableye": {
+      "moveIds": [
+        "raindance",
+        "lightscreen",
+        "reflect",
+        "encore"
+      ]
+    },
+    "sableyemega": {
+      "moveIds": [
+        "willowisp",
+        "fakeout",
+        "encore",
+        "recover"
+      ]
+    },
+    "salazzle": {
+      "moveIds": [
+        "fakeout",
+        "sludgebomb",
+        "heatwave",
+        "overheat"
+      ]
+    },
+    "samurotthisui": {
+      "moveIds": [
+        "sacredsword",
+        "ceaselessedge",
+        "suckerpunch",
+        "aquacutter"
+      ]
+    },
+    "sandaconda": {
+      "moveIds": [
+        "minimize",
+        "irondefense",
+        "bodypress",
+        "highhorsepower"
+      ]
+    },
+    "sceptile": {
+      "moveIds": [
+        "earthpower",
+        "leafstorm",
+        "shedtail",
+        "detect"
+      ]
+    },
+    "sceptilemega": {
+      "moveIds": [
+        "dragonpulse",
+        "earthpower",
+        "protect",
+        "energyball"
+      ]
+    },
+    "scizor": {
+      "moveIds": [
+        "bulletpunch",
+        "protect",
+        "bugbite",
+        "swordsdance"
+      ]
+    },
+    "scizormega": {
+      "moveIds": [
+        "bulletpunch",
+        "protect",
+        "swordsdance",
+        "bugbite"
+      ]
+    },
+    "scolipede": {
+      "moveIds": [
+        "protect",
+        "poisonjab",
+        "swordsdance",
+        "leechlife"
+      ]
+    },
+    "scolipedemega": {
+      "moveIds": [
+        "protect",
+        "leechlife",
+        "swordsdance",
+        "poisonjab"
+      ]
+    },
+    "scovillain": {
+      "moveIds": [
+        "protect",
+        "ragepowder",
+        "spicyextract",
+        "flamethrower"
+      ]
+    },
+    "scovillainmega": {
+      "moveIds": [
+        "ragepowder",
+        "protect",
+        "overheat",
+        "leechseed"
+      ]
+    },
+    "scrafty": {
+      "moveIds": [
+        "fakeout",
+        "knockoff",
+        "closecombat",
+        "drainpunch"
+      ]
+    },
+    "scraftymega": {
+      "moveIds": [
+        "fakeout",
+        "knockoff",
+        "drainpunch",
+        "closecombat"
+      ]
+    },
+    "serperior": {
+      "moveIds": [
+        "leafstorm",
+        "protect",
+        "glare",
+        "reflect"
+      ]
+    },
+    "sharpedo": {
+      "moveIds": [
+        "crunch",
+        "protect",
+        "liquidation",
+        "closecombat"
+      ]
+    },
+    "sharpedomega": {
+      "moveIds": [
+        "protect",
+        "crunch",
+        "psychicfangs",
+        "liquidation"
+      ]
+    },
+    "simipour": {
+      "moveIds": [
+        "fakeout",
+        "scald",
+        "icywind",
+        "taunt"
+      ]
+    },
+    "sinistcha": {
+      "moveIds": [
+        "matchagotcha",
+        "ragepowder",
+        "trickroom",
+        "protect"
+      ]
+    },
+    "skarmory": {
+      "moveIds": [
+        "bodypress",
+        "whirlwind",
+        "irondefense",
+        "roost"
+      ]
+    },
+    "skarmorymega": {
+      "moveIds": [
+        "bravebird",
+        "ironhead",
+        "protect",
+        "tailwind"
+      ]
+    },
+    "skeledirge": {
+      "moveIds": [
+        "torchsong",
+        "protect",
+        "shadowball",
+        "slackoff"
+      ]
+    },
+    "slowbro": {
+      "moveIds": [
+        "trickroom",
+        "scald",
+        "protect",
+        "psychic"
+      ]
+    },
+    "slowbrogalar": {
+      "moveIds": [
+        "shellsidearm",
+        "trickroom",
+        "psychic",
+        "protect"
+      ]
+    },
+    "slowbromega": {
+      "moveIds": [
+        "bodypress",
+        "slackoff",
+        "trickroom",
+        "scald"
+      ]
+    },
+    "slowking": {
+      "moveIds": [
+        "trickroom",
+        "scald",
+        "chillyreception",
+        "psychic"
+      ]
+    },
+    "slowkinggalar": {
+      "moveIds": [
+        "trickroom",
+        "sludgebomb",
+        "chillyreception",
+        "psychic"
+      ]
+    },
+    "slurpuff": {
+      "moveIds": [
+        "cottonguard",
+        "protect",
+        "amnesia",
+        "afteryou"
+      ]
+    },
+    "sneasler": {
+      "moveIds": [
+        "closecombat",
+        "fakeout",
+        "direclaw",
+        "protect"
+      ]
+    },
+    "snorlax": {
+      "moveIds": [
+        "protect",
+        "fissure",
+        "yawn",
+        "stockpile"
+      ]
+    },
+    "spiritomb": {
+      "moveIds": [
+        "trickroom",
+        "foulplay",
+        "willowisp",
+        "skillswap"
+      ]
+    },
+    "staraptor": {
+      "moveIds": [
+        "finalgambit",
+        "closecombat",
+        "bravebird",
+        "uturn"
+      ]
+    },
+    "staraptormega": {
+      "moveIds": [
+        "closecombat",
+        "protect",
+        "bravebird",
+        "roost"
+      ]
+    },
+    "starmie": {
+      "moveIds": [
+        "protect",
+        "scald",
+        "powergem",
+        "thunder"
+      ]
+    },
+    "starmiemega": {
+      "moveIds": [
+        "protect",
+        "liquidation",
+        "aquajet",
+        "psychocut"
+      ]
+    },
+    "steelix": {
+      "moveIds": [
+        "heavyslam",
+        "wideguard",
+        "protect",
+        "earthquake"
+      ]
+    },
+    "steelixmega": {
+      "moveIds": [
+        "protect",
+        "highhorsepower",
+        "heavyslam",
+        "wideguard"
+      ]
+    },
+    "swampert": {
+      "moveIds": [
+        "protect",
+        "wavecrash",
+        "wideguard",
+        "highhorsepower"
+      ]
+    },
+    "swampertmega": {
+      "moveIds": [
+        "protect",
+        "wavecrash",
+        "icepunch",
+        "earthquake"
+      ]
+    },
+    "sylveon": {
+      "moveIds": [
+        "hypervoice",
+        "quickattack",
+        "hyperbeam",
+        "detect"
+      ]
+    },
+    "talonflame": {
+      "moveIds": [
+        "tailwind",
+        "protect",
+        "flareblitz",
+        "bravebird"
+      ]
+    },
+    "tauros": {
+      "moveIds": [
+        "protect",
+        "bodyslam",
+        "earthquake",
+        "throatchop"
+      ]
+    },
+    "taurospaldeaaqua": {
+      "moveIds": [
+        "closecombat",
+        "protect",
+        "aquajet",
+        "wavecrash"
+      ]
+    },
+    "taurospaldeablaze": {
+      "moveIds": [
+        "closecombat",
+        "ragingbull",
+        "protect",
+        "rockslide"
+      ]
+    },
+    "tinkaton": {
+      "moveIds": [
+        "gigatonhammer",
+        "fakeout",
+        "protect",
+        "encore"
+      ]
+    },
+    "torkoal": {
+      "moveIds": [
+        "eruption",
+        "protect",
+        "weatherball",
+        "heatwave"
+      ]
+    },
+    "torterra": {
+      "moveIds": [
+        "earthquake",
+        "woodhammer",
+        "shellsmash",
+        "protect"
+      ]
+    },
+    "toucannon": {
+      "moveIds": [
+        "beakblast",
+        "rockblast",
+        "protect",
+        "bulletseed"
+      ]
+    },
+    "toxapex": {
+      "moveIds": [
+        "banefulbunker",
+        "toxic",
+        "infestation",
+        "wideguard"
+      ]
+    },
+    "toxicroak": {
+      "moveIds": [
+        "fakeout",
+        "poisonjab",
+        "closecombat",
+        "suckerpunch"
+      ]
+    },
+    "trevenant": {
+      "moveIds": [
+        "willowisp",
+        "trickroom",
+        "protect",
+        "hornleech"
+      ]
+    },
+    "tsareena": {
+      "moveIds": [
+        "tripleaxel",
+        "protect",
+        "tropkick",
+        "lowkick"
+      ]
+    },
+    "typhlosion": {
+      "moveIds": [
+        "eruption",
+        "scorchingsands",
+        "heatwave",
+        "protect"
+      ]
+    },
+    "typhlosionhisui": {
+      "moveIds": [
+        "eruption",
+        "shadowball",
+        "heatwave",
+        "burnup"
+      ]
+    },
+    "tyranitar": {
+      "moveIds": [
+        "rockslide",
+        "knockoff",
+        "protect",
+        "lowkick"
+      ]
+    },
+    "tyranitarmega": {
+      "moveIds": [
+        "rockslide",
+        "protect",
+        "knockoff",
+        "dragondance"
+      ]
+    },
+    "tyrantrum": {
+      "moveIds": [
+        "headsmash",
+        "rockslide",
+        "dragonclaw",
+        "protect"
+      ]
+    },
+    "umbreon": {
+      "moveIds": [
+        "foulplay",
+        "snarl",
+        "taunt",
+        "moonlight"
+      ]
+    },
+    "vanilluxe": {
+      "moveIds": [
+        "blizzard",
+        "freezedry",
+        "icywind",
+        "weatherball"
+      ]
+    },
+    "vaporeon": {
+      "moveIds": [
+        "scald",
+        "yawn",
+        "detect",
+        "faketears"
+      ]
+    },
+    "venusaur": {
+      "moveIds": [
+        "sludgebomb",
+        "protect",
+        "sleeppowder",
+        "earthpower"
+      ]
+    },
+    "venusaurmega": {
+      "moveIds": [
+        "sludgebomb",
+        "protect",
+        "earthpower",
+        "gigadrain"
+      ]
+    },
+    "victreebelmega": {
+      "moveIds": [
+        "sludgebomb",
+        "strengthsap",
+        "gigadrain",
+        "protect"
+      ]
+    },
+    "vileplume": {
+      "moveIds": [
+        "afteryou",
+        "sleeppowder",
+        "sludgebomb",
+        "leafstorm"
+      ]
+    },
+    "vivillon": {
+      "moveIds": [
+        "sleeppowder",
+        "ragepowder",
+        "hurricane",
+        "protect"
+      ]
+    },
+    "volcarona": {
+      "moveIds": [
+        "protect",
+        "ragepowder",
+        "heatwave",
+        "quiverdance"
+      ]
+    },
+    "weavile": {
+      "moveIds": [
+        "fakeout",
+        "knockoff",
+        "tripleaxel",
+        "protect"
+      ]
+    },
+    "whimsicott": {
+      "moveIds": [
+        "tailwind",
+        "moonblast",
+        "encore",
+        "protect"
+      ]
+    },
+    "wyrdeer": {
+      "moveIds": [
+        "trickroom",
+        "psyshieldbash",
+        "hypnosis",
+        "gravity"
+      ]
+    },
+    "zoroark": {
+      "moveIds": [
+        "nightdaze",
+        "protect",
+        "sunnyday",
+        "helpinghand"
+      ]
+    },
+    "zoroarkhisui": {
+      "moveIds": [
+        "hypervoice",
+        "shadowball",
+        "icywind",
+        "protect"
+      ]
+    }
+  }
+}

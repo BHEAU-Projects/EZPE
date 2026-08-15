@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "cli": "tsx src/cli/main.ts",
+    "data:refresh:moves": "tsx scripts/refresh-usage-movesets.ts",
     "dev": "tsx src/api/server.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --config vitest.config.ts --passWithNoTests"

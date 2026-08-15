@@ -13,7 +13,7 @@ import {
   loadBattleStateFile,
   saveBattleSessionFile
 } from "../src/io/battle-state-file.js";
-import { importTeam } from "../src/io/team-importer.js";
+import { importOpponentTeam, importTeam } from "../src/io/team-importer.js";
 import { createBattleSession } from "../src/session/battle-session.js";
 
 const showdownTeam = `Pikachu @ Light Ball
@@ -56,6 +56,17 @@ describe("terminal team and state input", () => {
     expect(state.teams.p1.active[0].hp).toEqual({ unit: "exact", current: 110, max: 110 });
     expect(state.teams.p2.active[0].hp).toEqual({ unit: "percent", percent: 100 });
   });
+
+  it("fills an opponent roster with offline usage-based moves", () => {
+    const team = importOpponentTeam("Pikachu\n\nBasculegion", "champions-m-b");
+
+    expect(team[0].moveIds).toEqual(["fakeout", "risingvoltage", "grassknot", "protect"]);
+    expect(team[0].moveKnowledge).toMatchObject({
+      source: "usage-default",
+      observedMoveIds: [],
+      assumedMoveIds: ["fakeout", "risingvoltage", "grassknot", "protect"]
+    });
+  });
 });
 
 describe("terminal commands", () => {
@@ -75,6 +86,11 @@ describe("terminal commands", () => {
       type: "rank",
       top: 2,
       maxOpponentPlans: 4
+    });
+    expect(parseCliCommand("move p2a Water Gun")).toEqual({
+      type: "move",
+      slot: "p2a",
+      moveId: "watergun"
     });
   });
 
@@ -96,6 +112,16 @@ describe("terminal commands", () => {
     });
     expect(ranking.lines[0]).toMatch(/^1\. /);
     expect(ranking.lines.at(-1)).toMatch(/plans/);
+  });
+
+  it("records an observed opponent move from a compact command", () => {
+    const session = createBattleSession(singleTurnBattleState);
+
+    executeSessionCommand(session, parseCliCommand("move p2a watergun"));
+
+    expect(session.getState().teams.p2.active[0].set.moveKnowledge).toMatchObject({
+      observedMoveIds: ["watergun"]
+    });
   });
 
   it("saves a session that can be loaded as a battle state", () => {

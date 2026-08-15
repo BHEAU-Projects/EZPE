@@ -4,6 +4,7 @@ import {
   type BattleState,
   type PlayerSide
 } from "../domain/battle-state.js";
+import { pokemonDataService } from "../data/pokemon-data-service.js";
 import { battleEventSchema, type BattleEvent } from "./battle-events.js";
 
 const emptyBoosts: ActivePokemon["boosts"] = {
@@ -95,6 +96,10 @@ export function applyBattleEvent(state: BattleState, event: BattleEvent): Battle
 
     case "ability-changed":
       findActivePokemon(nextState, parsedEvent.slot).currentAbilityId = parsedEvent.abilityId;
+      break;
+
+    case "move-observed":
+      applyObservedMove(nextState, parsedEvent.slot, parsedEvent.moveId);
       break;
 
     case "move-pp-changed": {
@@ -198,6 +203,46 @@ function applySwitch(
     currentAbilityId: outgoingPokemon.currentAbilityId,
     movePp: outgoingPokemon.movePp
   };
+}
+
+function applyObservedMove(
+  state: BattleState,
+  slot: ActivePokemon["slot"],
+  moveId: string
+): void {
+  const side = slot.slice(0, 2) as PlayerSide;
+  if (side === state.playerSide) {
+    throw new Error("move-observed is for revealing an opponent move; player moves are already known.");
+  }
+
+  const pokemon = findActivePokemon(state, slot);
+  if (!pokemonDataService.getMove(state.regulationId, moveId)) {
+    throw new Error(`Cannot record unknown move ${moveId}.`);
+  }
+  const knowledge = pokemon.set.moveKnowledge ?? {
+    source: "fallback" as const,
+    observedMoveIds: [],
+    assumedMoveIds: [...pokemon.set.moveIds]
+  };
+  if (knowledge.observedMoveIds.includes(moveId)) return;
+  if (knowledge.observedMoveIds.length === 4) {
+    throw new Error(`${pokemon.set.speciesId} already has four observed moves.`);
+  }
+
+  const observedMoveIds = [...knowledge.observedMoveIds, moveId];
+  const assumedMoveIds = knowledge.assumedMoveIds
+    .filter((assumedMoveId) => !observedMoveIds.includes(assumedMoveId))
+    .slice(0, 4 - observedMoveIds.length);
+  const set = {
+    ...pokemon.set,
+    moveIds: [...observedMoveIds, ...assumedMoveIds],
+    moveKnowledge: {
+      ...knowledge,
+      observedMoveIds,
+      assumedMoveIds
+    }
+  };
+  pokemon.set = set;
 }
 
 function isFainted(hp: ActivePokemon["hp"]): boolean {

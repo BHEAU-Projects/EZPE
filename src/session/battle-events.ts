@@ -150,6 +150,14 @@ export const movePpChangedEventSchema = z
   })
   .strict();
 
+export const moveObservedEventSchema = z
+  .object({
+    type: z.literal("move-observed"),
+    slot: activeSlotSchema,
+    moveId: z.string().min(1).regex(/^[a-z0-9]+$/)
+  })
+  .strict();
+
 export const volatilesChangedEventSchema = z
   .object({
     type: z.literal("volatiles-changed"),
@@ -198,6 +206,7 @@ export const battleEventSchema = z.discriminatedUnion("type", [
   boostsChangedEventSchema,
   itemChangedEventSchema,
   abilityChangedEventSchema,
+  moveObservedEventSchema,
   movePpChangedEventSchema,
   volatilesChangedEventSchema,
   specialMechanicUsedEventSchema,
@@ -215,6 +224,7 @@ export type StatusClearedEvent = z.infer<typeof statusClearedEventSchema>;
 export type BoostsChangedEvent = z.infer<typeof boostsChangedEventSchema>;
 export type ItemChangedEvent = z.infer<typeof itemChangedEventSchema>;
 export type AbilityChangedEvent = z.infer<typeof abilityChangedEventSchema>;
+export type MoveObservedEvent = z.infer<typeof moveObservedEventSchema>;
 export type MovePpChangedEvent = z.infer<typeof movePpChangedEventSchema>;
 export type VolatilesChangedEvent = z.infer<typeof volatilesChangedEventSchema>;
 export type SpecialMechanicUsedEvent = z.infer<typeof specialMechanicUsedEventSchema>;

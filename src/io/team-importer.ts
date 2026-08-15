@@ -8,6 +8,8 @@ import {
   type StatTable
 } from "../domain/battle-state.js";
 import { pokemonDataService } from "../data/pokemon-data-service.js";
+import { getRegulationById } from "../data/regulations.js";
+import { usageMovesetStore } from "../data/usage-movesets.js";
 
 const { Teams } = PokemonShowdown;
 
@@ -18,9 +20,26 @@ export function importTeamFile(path: string, regulationId: string): PokemonSet[]
   return importTeam(readFileSync(path, "utf8"), regulationId);
 }
 
-export function importTeam(input: string, regulationId: string): PokemonSet[] {
+export function importOpponentTeamFile(path: string, regulationId: string): PokemonSet[] {
+  return importOpponentTeam(readFileSync(path, "utf8"), regulationId);
+}
+
+export function importOpponentTeam(input: string, regulationId: string): PokemonSet[] {
+  return importTeam(input, regulationId, true);
+}
+
+export function importTeam(
+  input: string,
+  regulationId: string,
+  usePopularOpponentMoves = false
+): PokemonSet[] {
   const jsonTeam = parseJsonTeam(input);
-  if (jsonTeam) return validateImportedTeam(jsonTeam, regulationId);
+  if (jsonTeam) {
+    const sets = usePopularOpponentMoves
+      ? jsonTeam.map((set) => usageMovesetStore.applyPopularMoveset(set, regulationId))
+      : jsonTeam;
+    return validateImportedTeam(sets, regulationId);
+  }
 
   const showdownTeam = Teams.import(input);
   if (!showdownTeam || showdownTeam.length === 0) {
@@ -39,7 +58,16 @@ export function importTeam(input: string, regulationId: string): PokemonSet[] {
     const abilityId = pokemonDataService.canonicalId(
       rawSet.ability || species.abilityIds[0] || ""
     );
-    const moveIds = rawSet.moves.map((move) => pokemonDataService.canonicalId(move));
+    const importedMoveIds = rawSet.moves.map((move) => pokemonDataService.canonicalId(move));
+    const popularMoveset = usePopularOpponentMoves
+      ? usageMovesetStore.getPopularMoveIds(regulationId, speciesId)
+      : undefined;
+    const moveIds = popularMoveset?.moveIds ?? importedMoveIds;
+    if (moveIds.length === 0) {
+      throw new Error(
+        `${species.name} has no imported moves and no usage-based default for ${regulationId}.`
+      );
+    }
     const stats = pokemonDataService.calculateStats(
       { speciesId, level, nature, evs, ivs },
       regulationId
@@ -55,7 +83,23 @@ export function importTeam(input: string, regulationId: string): PokemonSet[] {
       nature,
       stats,
       evs,
-      ivs
+      ivs,
+      ...(usePopularOpponentMoves
+        ? {
+            moveKnowledge: popularMoveset
+              ? {
+                  source: "usage-default" as const,
+                  observedMoveIds: [],
+                  assumedMoveIds: moveIds,
+                  usageSnapshotId: popularMoveset.snapshotId
+                }
+              : {
+                  source: "fallback" as const,
+                  observedMoveIds: [],
+                  assumedMoveIds: moveIds
+                }
+          }
+        : {})
     });
   });
 
@@ -81,8 +125,10 @@ function parseJsonTeam(input: string): PokemonSet[] | undefined {
 }
 
 function validateImportedTeam(sets: PokemonSet[], regulationId: string): PokemonSet[] {
+  const regulation = getRegulationById(regulationId);
   const result = pokemonDataService.validateTeam(sets, regulationId, {
-    enforceRosterSize: false
+    enforceRosterSize: false,
+    runShowdownValidator: sets.length === regulation?.battleRules.bring
   });
   if (!result.valid) throw new Error(result.errors.join("\n"));
   return sets;

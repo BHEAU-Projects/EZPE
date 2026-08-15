@@ -200,6 +200,42 @@ describe("applyBattleEvent", () => {
     ).toThrow(/does not know surf/);
   });
 
+  it("replaces opponent move assumptions as moves are observed", () => {
+    const state = structuredClone(singleTurnBattleState);
+    state.teams.p2.active[0].set.moveKnowledge = {
+      source: "usage-default",
+      observedMoveIds: [],
+      assumedMoveIds: ["tackle", "protect"],
+      usageSnapshotId: "test-snapshot"
+    };
+
+    const nextState = applyBattleEvent(state, {
+      type: "move-observed",
+      slot: "p2a",
+      moveId: "watergun"
+    });
+
+    expect(nextState.teams.p2.active[0].set).toMatchObject({
+      moveIds: ["watergun", "tackle", "protect"],
+      moveKnowledge: {
+        observedMoveIds: ["watergun"],
+        assumedMoveIds: ["tackle", "protect"],
+        usageSnapshotId: "test-snapshot"
+      }
+    });
+    expect(state.teams.p2.active[0].set.moveIds).toEqual(["tackle", "protect"]);
+  });
+
+  it("rejects move observations for the known player team", () => {
+    expect(() =>
+      applyBattleEvent(singleTurnBattleState, {
+        type: "move-observed",
+        slot: "p1a",
+        moveId: "fakeout"
+      })
+    ).toThrow(/opponent move/);
+  });
+
   it("starts a turn, clears protection, and refreshes legal actions", () => {
     const state = structuredClone(singleTurnBattleState);
     state.teams.p1.active[0].protectedThisTurn = true;

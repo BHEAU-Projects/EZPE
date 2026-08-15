@@ -8,7 +8,7 @@ import {
   createBattleStateFromTeams,
   loadBattleStateFile
 } from "../io/battle-state-file.js";
-import { importTeamFile } from "../io/team-importer.js";
+import { importOpponentTeamFile, importTeamFile } from "../io/team-importer.js";
 import { createBattleSession } from "../session/battle-session.js";
 import { parseCliCommand } from "./command-parser.js";
 import { cliHelpLines, executeSessionCommand } from "./session-command.js";
@@ -57,7 +57,7 @@ function loadInitialState(args: string[]): BattleState {
 
   const playerSide = options.playerSide;
   const playerTeam = importTeamFile(options.playerTeamPath, options.regulationId);
-  const opponentTeam = importTeamFile(options.opponentTeamPath, options.regulationId);
+  const opponentTeam = importOpponentTeamFile(options.opponentTeamPath, options.regulationId);
 
   return createBattleStateFromTeams({
     regulationId: options.regulationId,

@@ -16,6 +16,7 @@ export const cliHelpLines = [
   "pp <slot> <move> <remaining>      pp p1a thunderbolt 7",
   "item <slot> <item|none>           item p1a none",
   "ability <slot> <ability>          ability p1a lightningrod",
+  "move <opponent slot> <move>       move p2a fakeout",
   "weather <weather|clear> <turns>   weather rain 5",
   "terrain <terrain|clear> <turns>   terrain electric 5",
   "turn <number>                     turn 2",
@@ -98,6 +99,14 @@ export function executeSessionCommand(
         abilityId: command.abilityId
       });
       return updated(`${command.slot} ability`);
+
+    case "move":
+      session.applyEvent({
+        type: "move-observed",
+        slot: command.slot,
+        moveId: command.moveId
+      });
+      return updated(`${command.slot} observed move ${command.moveId}`);
 
     case "weather":
       session.applyEvent({
@@ -182,6 +191,13 @@ function formatState(session: BattleSession): string[] {
       return `${pokemon.slot} ${pokemon.set.displayName ?? pokemon.set.speciesId} ${hp} ${pokemon.status}`;
     });
     lines.push(`${side}: ${active.join(" | ")}`);
+
+    for (const pokemon of state.teams[side].active) {
+      if (!pokemon.set.moveKnowledge) continue;
+      const observed = pokemon.set.moveKnowledge.observedMoveIds.join(",") || "none";
+      const assumed = pokemon.set.moveKnowledge.assumedMoveIds.join(",") || "none";
+      lines.push(`${pokemon.slot} moves: observed=${observed} assumed=${assumed}`);
+    }
   }
 
   lines.push(

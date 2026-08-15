@@ -15,6 +15,7 @@ describe("battleEventSchema", () => {
       { type: "status-cleared", slot: "p1a" },
       { type: "item-changed", slot: "p1a", itemId: null },
       { type: "ability-changed", slot: "p1a", abilityId: "lightningrod" },
+      { type: "move-observed", slot: "p2a", moveId: "watergun" },
       { type: "move-pp-changed", slot: "p1a", moveId: "thunderbolt", remainingPp: 3 },
       { type: "volatiles-changed", slot: "p1a", volatileEffectIds: ["focusenergy"] },
       { type: "field-changed", changes: { weather: "rain", weatherTurnsRemaining: 5 } },

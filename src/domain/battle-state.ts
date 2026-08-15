@@ -135,6 +135,32 @@ export const specialMechanicSchema = z
   })
   .strict();
 
+export const moveKnowledgeSchema = z
+  .object({
+    source: z.enum(["known", "usage-default", "fallback"]),
+    observedMoveIds: z.array(canonicalIdSchema).max(4).default([]),
+    assumedMoveIds: z.array(canonicalIdSchema).max(4).default([]),
+    usageSnapshotId: z.string().min(1).optional()
+  })
+  .strict()
+  .superRefine((knowledge, ctx) => {
+    const observed = new Set(knowledge.observedMoveIds);
+    const assumed = new Set(knowledge.assumedMoveIds);
+    if (observed.size !== knowledge.observedMoveIds.length) {
+      ctx.addIssue({ code: "custom", message: "Observed moves must be unique.", path: ["observedMoveIds"] });
+    }
+    if (assumed.size !== knowledge.assumedMoveIds.length) {
+      ctx.addIssue({ code: "custom", message: "Assumed moves must be unique.", path: ["assumedMoveIds"] });
+    }
+    if (knowledge.observedMoveIds.some((moveId) => assumed.has(moveId))) {
+      ctx.addIssue({
+        code: "custom",
+        message: "A move cannot be both observed and assumed.",
+        path: ["assumedMoveIds"]
+      });
+    }
+  });
+
 export const pokemonSetSchema = z
   .object({
     speciesId: canonicalIdSchema,
@@ -148,7 +174,8 @@ export const pokemonSetSchema = z
     stats: statTableSchema,
     evs: evTableSchema.optional(),
     ivs: ivTableSchema.optional(),
-    specialMechanic: specialMechanicSchema.optional()
+    specialMechanic: specialMechanicSchema.optional(),
+    moveKnowledge: moveKnowledgeSchema.optional()
   })
   .strict();
 
@@ -333,6 +360,7 @@ export type ExactHp = z.infer<typeof exactHpSchema>;
 export type PercentageHp = z.infer<typeof percentageHpSchema>;
 export type HpMeasurement = z.infer<typeof hpMeasurementSchema>;
 export type PokemonSet = z.infer<typeof pokemonSetSchema>;
+export type MoveKnowledge = z.infer<typeof moveKnowledgeSchema>;
 export type ActivePokemon = z.infer<typeof activePokemonSchema>;
 export type BenchPokemon = z.infer<typeof benchPokemonSchema>;
 export type SideConditions = z.infer<typeof sideConditionsSchema>;

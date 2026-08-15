@@ -19,6 +19,7 @@ export type CliCommand =
   | { type: "pp"; slot: ActivePokemon["slot"]; moveId: string; remainingPp: number }
   | { type: "item"; slot: ActivePokemon["slot"]; itemId: string | null }
   | { type: "ability"; slot: ActivePokemon["slot"]; abilityId: string }
+  | { type: "move"; slot: ActivePokemon["slot"]; moveId: string }
   | { type: "weather"; weather: Weather | null; turns: number }
   | { type: "terrain"; terrain: Terrain | null; turns: number }
   | { type: "turn"; turnNumber: number }
@@ -94,6 +95,12 @@ export function parseCliCommand(input: string): CliCommand {
     }
     case "ability":
       return { type: "ability", slot: parseSlot(args[0]), abilityId: canonicalId(requireArg(args[1], "ability")) };
+    case "move":
+      return {
+        type: "move",
+        slot: parseSlot(args[0]),
+        moveId: canonicalId(requireArg(args.slice(1).join(" "), "move"))
+      };
     case "weather":
       return parseFieldCommand("weather", args);
     case "terrain":
