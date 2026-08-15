@@ -35,12 +35,25 @@ export interface AdviceResult {
   debug: {
     scoreBreakdown: ScoreBreakdown;
     simulation: SingleTurnSimulationResult;
+    opponentEvaluation: {
+      expectedScore: number;
+      worstCaseScore: number;
+      bestCaseScore: number;
+      responseCount: number;
+      simulationCount: number;
+      worstOpponentChoice: string;
+    };
   };
 }
 
+export type SimulationSeed = readonly [number, number, number, number];
+
 export interface RankMovesInput {
-  opponentChoice: string;
+  opponentChoice?: string;
+  opponentChoices?: string[];
+  maxOpponentPlans?: number;
   p1TeamPreviewChoice?: string;
   p2TeamPreviewChoice?: string;
-  seed?: readonly [number, number, number, number];
+  seed?: SimulationSeed;
+  seeds?: SimulationSeed[];
 }
