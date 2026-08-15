@@ -1,6 +1,14 @@
 import { Battle } from "pokemon-showdown";
 
-import type { BattleState, LegalAction, PlayerSide, PokemonSet, StatTable, TeamState } from "../domain/battle-state.js";
+import type {
+  BattleState,
+  HpMeasurement,
+  LegalAction,
+  PlayerSide,
+  PokemonSet,
+  StatTable,
+  TeamState
+} from "../domain/battle-state.js";
 import { getRegulationById } from "../data/regulations.js";
 
 export interface ShowdownPokemonSet {
@@ -27,6 +35,7 @@ export interface SingleTurnSimulationInput {
   formatId: string;
   p1: SingleTurnSideInput;
   p2: SingleTurnSideInput;
+  battleState?: BattleState;
   seed?: ShowdownSeed | readonly [number, number, number, number];
 }
 
@@ -38,16 +47,39 @@ export interface BattleStateSingleTurnChoices {
 }
 
 export interface ShowdownMoveEvent {
+  side: PlayerSide;
+  slot: string;
   user: string;
   move: string;
   target?: string;
 }
 
 export interface ShowdownDamageEvent {
+  side: PlayerSide;
+  slot: string;
+  pokemon: string;
   target: string;
   remainingHp: number;
   maxHp: number | null;
+  damageAmount: number;
   rawHpText: string;
+}
+
+export interface ShowdownPokemonHpSummary {
+  side: PlayerSide;
+  slot: string;
+  pokemon: string;
+  remainingHp: number;
+  maxHp: number | null;
+  fainted: boolean;
+}
+
+export interface SingleTurnOutcomeSummary {
+  hpByPokemon: ShowdownPokemonHpSummary[];
+  faintedPokemon: ShowdownPokemonHpSummary[];
+  damageTakenBySide: Record<PlayerSide, number>;
+  kosTakenBySide: Record<PlayerSide, number>;
+  movesBySide: Record<PlayerSide, ShowdownMoveEvent[]>;
 }
 
 export interface SingleTurnSimulationResult {
@@ -56,6 +88,7 @@ export interface SingleTurnSimulationResult {
   log: string[];
   moveEvents: ShowdownMoveEvent[];
   damageEvents: ShowdownDamageEvent[];
+  summary: SingleTurnOutcomeSummary;
   turn: number;
   ended: boolean;
   winner: string | null;
@@ -119,6 +152,7 @@ export function createSingleTurnSimulationInputFromBattleState(
 ): SingleTurnSimulationInput {
   return {
     formatId: getShowdownFormatIdForRegulation(battleState.regulationId),
+    battleState: structuredClone(battleState),
     p1: {
       name: "Player 1",
       team: toShowdownTeam(battleState.teams.p1),
@@ -173,6 +207,10 @@ export function simulateSingleTurn(input: SingleTurnSimulationInput): SingleTurn
       team: input.p2.team
     });
 
+    if (input.battleState) {
+      applyObservedHpToBattle(battle, input.battleState);
+    }
+
     if (battle.requestState === "teampreview") {
       battle.makeChoices(
         input.p1.teamPreviewChoice ?? defaultTeamPreviewChoice(input.p1.team.length),
@@ -184,16 +222,22 @@ export function simulateSingleTurn(input: SingleTurnSimulationInput): SingleTurn
       throw new Error(`Expected move request before simulating a turn, received ${battle.requestState || "none"}.`);
     }
 
+    const initialHpBySlot = captureActiveHp(battle);
+
     battle.makeChoices(input.p1.turnChoice, input.p2.turnChoice);
 
     const log = [...battle.log];
+
+    const moveEvents = parseMoveEvents(log);
+    const damageEvents = parseDamageEvents(log, initialHpBySlot);
 
     return {
       formatId: input.formatId,
       inputLog: [...battle.inputLog],
       log,
-      moveEvents: parseMoveEvents(log),
-      damageEvents: parseDamageEvents(log),
+      moveEvents,
+      damageEvents,
+      summary: summarizeSingleTurnOutcome(log, moveEvents, damageEvents, initialHpBySlot),
       turn: battle.turn,
       ended: battle.ended,
       winner: battle.winner ?? null
@@ -201,6 +245,18 @@ export function simulateSingleTurn(input: SingleTurnSimulationInput): SingleTurn
   } finally {
     battle.destroy();
   }
+}
+
+export function toShowdownCurrentHp(hp: HpMeasurement, showdownMaxHp: number): number {
+  if (!Number.isInteger(showdownMaxHp) || showdownMaxHp < 1) {
+    throw new RangeError("Showdown max HP must be a positive integer.");
+  }
+
+  const fraction = hp.unit === "exact" ? hp.current / hp.max : hp.percent / 100;
+
+  if (fraction <= 0) return 0;
+
+  return Math.max(1, Math.min(showdownMaxHp, Math.round(showdownMaxHp * fraction)));
 }
 
 function defaultTeamPreviewChoice(activeCount: number): string {
@@ -233,9 +289,12 @@ function parseMoveEvents(log: string[]): ShowdownMoveEvent[] {
     if (!line.startsWith("|move|")) return [];
 
     const [, , user, move, target] = line.split("|");
+    const parsedUser = parsePokemonLabel(user);
 
     return [
       {
+        side: parsedUser.side,
+        slot: parsedUser.slot,
         user,
         move,
         target
@@ -244,27 +303,211 @@ function parseMoveEvents(log: string[]): ShowdownMoveEvent[] {
   });
 }
 
-function parseDamageEvents(log: string[]): ShowdownDamageEvent[] {
+function parseDamageEvents(
+  log: string[],
+  initialHpBySlot: ReadonlyMap<string, ShowdownPokemonHpSummary> = new Map()
+): ShowdownDamageEvent[] {
   const events: ShowdownDamageEvent[] = [];
+  const hpBySlot = new Map<string, { remainingHp: number; maxHp: number | null }>(
+    [...initialHpBySlot].map(([slot, hp]) => [
+      slot,
+      { remainingHp: hp.remainingHp, maxHp: hp.maxHp }
+    ])
+  );
   let previousDamageLine = "";
+  let turnStarted = false;
 
   for (const line of log) {
+    if (line.startsWith("|turn|")) {
+      turnStarted = true;
+      continue;
+    }
+
+    if (line.startsWith("|switch|")) {
+      const [, , target, , rawHpText] = line.split("|");
+      const parsedTarget = parsePokemonLabel(target);
+      const hp = parseHpText(rawHpText);
+
+      if (turnStarted || !initialHpBySlot.has(parsedTarget.slot)) {
+        hpBySlot.set(parsedTarget.slot, {
+          remainingHp: hp.remainingHp,
+          maxHp: hp.maxHp
+        });
+      }
+
+      continue;
+    }
+
     if (!line.startsWith("|-damage|")) continue;
     if (line === previousDamageLine) continue;
 
     previousDamageLine = line;
 
     const [, , target, rawHpText] = line.split("|");
-    const hpToken = rawHpText.split(" ")[0];
-    const [remainingText, maxText] = hpToken.split("/");
+    const parsedTarget = parsePokemonLabel(target);
+    const previousHp = hpBySlot.get(parsedTarget.slot);
+    const hp = parseHpText(rawHpText);
+    const maxHp = hp.maxHp ?? previousHp?.maxHp ?? null;
+    const damageAmount = previousHp ? Math.max(0, previousHp.remainingHp - hp.remainingHp) : 0;
+
+    hpBySlot.set(parsedTarget.slot, {
+      remainingHp: hp.remainingHp,
+      maxHp
+    });
 
     events.push({
+      side: parsedTarget.side,
+      slot: parsedTarget.slot,
+      pokemon: parsedTarget.pokemon,
       target,
-      remainingHp: Number.parseInt(remainingText, 10),
-      maxHp: maxText ? Number.parseInt(maxText, 10) : null,
+      remainingHp: hp.remainingHp,
+      maxHp,
+      damageAmount,
       rawHpText
     });
   }
 
   return events;
+}
+
+function summarizeSingleTurnOutcome(
+  log: string[],
+  moveEvents: ShowdownMoveEvent[],
+  damageEvents: ShowdownDamageEvent[],
+  initialHpBySlot: ReadonlyMap<string, ShowdownPokemonHpSummary> = new Map()
+): SingleTurnOutcomeSummary {
+  const hpBySlot = new Map<string, ShowdownPokemonHpSummary>(initialHpBySlot);
+  let turnStarted = false;
+
+  for (const line of log) {
+    if (line.startsWith("|turn|")) {
+      turnStarted = true;
+      continue;
+    }
+
+    if (!line.startsWith("|switch|")) continue;
+
+    const [, , target, , rawHpText] = line.split("|");
+    const parsedTarget = parsePokemonLabel(target);
+    const hp = parseHpText(rawHpText);
+
+    if (turnStarted || !initialHpBySlot.has(parsedTarget.slot)) {
+      hpBySlot.set(parsedTarget.slot, {
+        side: parsedTarget.side,
+        slot: parsedTarget.slot,
+        pokemon: parsedTarget.pokemon,
+        remainingHp: hp.remainingHp,
+        maxHp: hp.maxHp,
+        fainted: false
+      });
+    }
+  }
+
+  for (const damageEvent of damageEvents) {
+    hpBySlot.set(damageEvent.slot, {
+      side: damageEvent.side,
+      slot: damageEvent.slot,
+      pokemon: damageEvent.pokemon,
+      remainingHp: damageEvent.remainingHp,
+      maxHp: damageEvent.maxHp,
+      fainted: damageEvent.remainingHp === 0 || damageEvent.rawHpText.includes(" fnt")
+    });
+  }
+
+  const hpByPokemon = [...hpBySlot.values()].sort((a, b) => a.slot.localeCompare(b.slot));
+  const faintedPokemon = hpByPokemon.filter((pokemon) => pokemon.fainted);
+
+  return {
+    hpByPokemon,
+    faintedPokemon,
+    damageTakenBySide: {
+      p1: sumDamageTakenBySide(damageEvents, "p1"),
+      p2: sumDamageTakenBySide(damageEvents, "p2")
+    },
+    kosTakenBySide: {
+      p1: faintedPokemon.filter((pokemon) => pokemon.side === "p1").length,
+      p2: faintedPokemon.filter((pokemon) => pokemon.side === "p2").length
+    },
+    movesBySide: {
+      p1: moveEvents.filter((event) => event.side === "p1"),
+      p2: moveEvents.filter((event) => event.side === "p2")
+    }
+  };
+}
+
+function sumDamageTakenBySide(damageEvents: ShowdownDamageEvent[], side: PlayerSide): number {
+  return damageEvents
+    .filter((event) => event.side === side)
+    .reduce((totalDamage, event) => totalDamage + event.damageAmount, 0);
+}
+
+function parsePokemonLabel(label: string): { side: PlayerSide; slot: string; pokemon: string } {
+  const [slot, pokemon = ""] = label.split(": ");
+
+  return {
+    side: slot.slice(0, 2) as PlayerSide,
+    slot,
+    pokemon
+  };
+}
+
+function parseHpText(rawHpText: string): { remainingHp: number; maxHp: number | null } {
+  const hpToken = rawHpText.split(" ")[0];
+  const [remainingText, maxText] = hpToken.split("/");
+
+  return {
+    remainingHp: Number.parseInt(remainingText, 10),
+    maxHp: maxText ? Number.parseInt(maxText, 10) : null
+  };
+}
+
+function applyObservedHpToBattle(battle: Battle, battleState: BattleState): void {
+  for (const side of ["p1", "p2"] as const) {
+    const observedPokemon = orderedTeamPokemon(battleState.teams[side]);
+    const showdownSide = side === "p1" ? battle.p1 : battle.p2;
+
+    observedPokemon.forEach((pokemon, index) => {
+      const showdownPokemon = showdownSide.pokemon[index];
+
+      if (!showdownPokemon) {
+        throw new Error(`Showdown is missing team position ${index + 1} for ${side}.`);
+      }
+
+      showdownPokemon.hp = toShowdownCurrentHp(pokemon.hp, showdownPokemon.maxhp);
+      showdownPokemon.fainted = showdownPokemon.hp === 0;
+    });
+
+    showdownSide.pokemonLeft = showdownSide.pokemon.filter((pokemon) => !pokemon.fainted).length;
+  }
+}
+
+function orderedTeamPokemon(team: TeamState): Array<TeamState["active"][number] | TeamState["bench"][number]> {
+  const active = [...team.active].sort((a, b) => a.slot.localeCompare(b.slot));
+  const bench = [...team.bench].sort((a, b) => a.benchSlot - b.benchSlot);
+
+  return [...active, ...bench];
+}
+
+function captureActiveHp(battle: Battle): Map<string, ShowdownPokemonHpSummary> {
+  const hpBySlot = new Map<string, ShowdownPokemonHpSummary>();
+
+  for (const side of ["p1", "p2"] as const) {
+    const showdownSide = side === "p1" ? battle.p1 : battle.p2;
+
+    showdownSide.active.forEach((pokemon, index) => {
+      if (!pokemon) return;
+
+      const slot = `${side}${index === 0 ? "a" : "b"}`;
+      hpBySlot.set(slot, {
+        side,
+        slot,
+        pokemon: pokemon.name,
+        remainingHp: pokemon.hp,
+        maxHp: pokemon.maxhp,
+        fainted: pokemon.fainted || pokemon.hp === 0
+      });
+    });
+  }
+
+  return hpBySlot;
 }

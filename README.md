@@ -6,7 +6,7 @@ The long-term goal is to accept a structured battle state from Pokemon Champions
 
 ## Current Status
 
-This repository is currently a comment-only scaffold. The files describe where each future part of the system should live, but there is no working analyzer, API server, simulator adapter, or scoring engine yet.
+The project currently has a validated battle-state contract, regulation snapshots, damage utilities, a single-turn Pokemon Showdown adapter, a first-pass move ranker, and an event-driven battle session. The API layer and live game-state capture are not implemented yet.
 
 ## Planned Commands
 
@@ -16,7 +16,7 @@ npm run typecheck
 npm test
 ```
 
-These commands are wired into `package.json` for the future implementation. While the source files are comment-only, `typecheck` and `test` should still be safe verification commands.
+Use `typecheck` and `test` after changing schemas, mechanics, simulation, or advisor behavior.
 
 ## Planned Input Concept
 
@@ -24,9 +24,20 @@ The first real version should accept structured JSON instead of screenshots or r
 
 - Battle format and Champions regulation id.
 - Both teams, active Pokemon, bench Pokemon, items, abilities, moves, tera/mega or Champions-specific mechanics when relevant.
-- Current HP, status, stat boosts, volatile effects, speed-control effects, and fainted Pokemon.
+- Exact current/max HP for the player's Pokemon, matching the numbers visible in Champions.
+- Percentage HP for opposing Pokemon, without pretending their hidden exact HP is known.
+- Status, stat boosts, volatile effects, speed-control effects, and fainted Pokemon.
 - Field state such as weather, terrain, hazards, screens, Tailwind, Trick Room, and turn count.
 - Legal actions for the player, including move targets and switches.
+
+HP is represented explicitly according to how it was observed:
+
+```json
+{ "unit": "exact", "current": 137, "max": 181 }
+{ "unit": "percent", "percent": 76 }
+```
+
+The simulator converts percentages to an estimated Showdown HP value only at the simulation boundary.
 
 ## Planned Output Concept
 

@@ -41,8 +41,7 @@ export const singleTurnBattleState: BattleState = {
             nature: "Serious",
             stats: neutralStats
           },
-          currentHp: 110,
-          maxHp: 110,
+          hp: { unit: "exact", current: 110, max: 110 },
           status: "healthy",
           boosts: emptyBoosts,
           volatileEffectIds: [],
@@ -60,8 +59,7 @@ export const singleTurnBattleState: BattleState = {
             nature: "Serious",
             stats: neutralStats
           },
-          currentHp: 120,
-          maxHp: 120,
+          hp: { unit: "exact", current: 120, max: 120 },
           status: "healthy",
           boosts: emptyBoosts,
           volatileEffectIds: [],
@@ -96,8 +94,7 @@ export const singleTurnBattleState: BattleState = {
             nature: "Serious",
             stats: neutralStats
           },
-          currentHp: 119,
-          maxHp: 119,
+          hp: { unit: "percent", percent: 100 },
           status: "healthy",
           boosts: emptyBoosts,
           volatileEffectIds: [],
@@ -115,8 +112,7 @@ export const singleTurnBattleState: BattleState = {
             nature: "Serious",
             stats: neutralStats
           },
-          currentHp: 114,
-          maxHp: 114,
+          hp: { unit: "percent", percent: 100 },
           status: "healthy",
           boosts: emptyBoosts,
           volatileEffectIds: [],

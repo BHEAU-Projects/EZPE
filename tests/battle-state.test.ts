@@ -31,8 +31,7 @@ const validBattleState: BattleState = {
             moveIds: ["fakeout", "flareblitz", "partingshot", "protect"],
             stats: baseStats
           },
-          currentHp: 170,
-          maxHp: 170,
+          hp: { unit: "exact", current: 170, max: 170 },
           status: "healthy",
           boosts: {
             atk: 0,
@@ -57,8 +56,7 @@ const validBattleState: BattleState = {
             moveIds: ["woodhammer", "fakeout", "uturn", "grassyglide"],
             stats: baseStats
           },
-          currentHp: 175,
-          maxHp: 175,
+          hp: { unit: "exact", current: 175, max: 175 },
           status: "healthy",
           boosts: {
             atk: 0,
@@ -100,8 +98,7 @@ const validBattleState: BattleState = {
             moveIds: ["moonblast", "shadowball", "dazzlinggleam", "protect"],
             stats: baseStats
           },
-          currentHp: 130,
-          maxHp: 130,
+          hp: { unit: "percent", percent: 100 },
           status: "healthy",
           boosts: {
             atk: 0,
@@ -171,11 +168,31 @@ describe("battleStateSchema", () => {
     expect(battleStateSchema.safeParse(state).success).toBe(false);
   });
 
-  it("rejects current HP greater than max HP", () => {
+  it("rejects exact current HP greater than max HP", () => {
     const state = structuredClone(validBattleState);
-    state.teams.p1.active[0].currentHp = 171;
+    const hp = state.teams.p1.active[0].hp;
+    if (hp.unit !== "exact") throw new Error("Expected exact player HP in test fixture.");
+    hp.current = 171;
 
     expect(battleStateSchema.safeParse(state).success).toBe(false);
+  });
+
+  it("requires exact HP for the player and percentage HP for the opponent", () => {
+    const opponentWithExactHp = structuredClone(validBattleState);
+    opponentWithExactHp.teams.p2.active[0].hp = {
+      unit: "exact",
+      current: 130,
+      max: 130
+    };
+
+    const playerWithPercentageHp = structuredClone(validBattleState);
+    playerWithPercentageHp.teams.p1.active[0].hp = {
+      unit: "percent",
+      percent: 100
+    };
+
+    expect(battleStateSchema.safeParse(opponentWithExactHp).success).toBe(false);
+    expect(battleStateSchema.safeParse(playerWithPercentageHp).success).toBe(false);
   });
 
   it("rejects stat boosts outside the legal -6 to 6 range", () => {

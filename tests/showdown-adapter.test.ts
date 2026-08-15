@@ -5,7 +5,8 @@ import {
   buildShowdownChoiceFromLegalActions,
   createSingleTurnSimulationInputFromBattleState,
   getShowdownFormatIdForRegulation,
-  simulateSingleTurn
+  simulateSingleTurn,
+  toShowdownCurrentHp
 } from "../src/sim/showdown-adapter.js";
 
 describe("showdown adapter", () => {
@@ -18,6 +19,12 @@ describe("showdown adapter", () => {
     expect(buildShowdownChoiceFromLegalActions(singleTurnBattleState.legalActions, "p1")).toBe(
       "move thunderbolt 1, move tackle 1"
     );
+  });
+
+  it("converts exact and percentage observations to Showdown HP", () => {
+    expect(toShowdownCurrentHp({ unit: "exact", current: 55, max: 110 }, 200)).toBe(100);
+    expect(toShowdownCurrentHp({ unit: "percent", percent: 25 }, 200)).toBe(50);
+    expect(toShowdownCurrentHp({ unit: "percent", percent: 0 }, 200)).toBe(0);
   });
 
   it("simulates one deterministic doubles turn from sample data", () => {
@@ -36,5 +43,26 @@ describe("showdown adapter", () => {
       remainingHp: 0,
       rawHpText: "0 fnt"
     });
+  });
+
+  it("uses the opponent's observed percentage as the simulation's starting HP", () => {
+    const battleState = structuredClone(singleTurnBattleState);
+    battleState.teams.p2.active[0].hp = { unit: "percent", percent: 10 };
+
+    const input = createSingleTurnSimulationInputFromBattleState(battleState, {
+      ...singleTurnChoices,
+      p1Choice: "move protect, move tackle 1"
+    });
+    const result = simulateSingleTurn({
+      ...input,
+      seed: [1, 2, 3, 4]
+    });
+    const squirtleDamage = result.damageEvents.find(
+      (event) => event.target === "p2a: Squirtle"
+    );
+
+    expect(squirtleDamage).toMatchObject({ remainingHp: 0 });
+    expect(squirtleDamage?.damageAmount).toBeGreaterThan(0);
+    expect(squirtleDamage?.damageAmount).toBeLessThan(20);
   });
 });

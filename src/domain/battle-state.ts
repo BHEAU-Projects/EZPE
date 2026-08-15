@@ -31,16 +31,29 @@ const defaultSideConditions = {
   toxicSpikesLayers: 0
 };
 
-const hpStateSchema = z
+export const exactHpSchema = z
   .object({
-    currentHp: z.number().int().min(0).max(999),
-    maxHp: z.number().int().min(1).max(999)
+    unit: z.literal("exact"),
+    current: z.number().int().min(0).max(999),
+    max: z.number().int().min(1).max(999)
   })
   .strict()
-  .refine((hp) => hp.currentHp <= hp.maxHp, {
-    message: "currentHp cannot be greater than maxHp.",
-    path: ["currentHp"]
+  .refine((hp) => hp.current <= hp.max, {
+    message: "Exact current HP cannot be greater than max HP.",
+    path: ["current"]
   });
+
+export const percentageHpSchema = z
+  .object({
+    unit: z.literal("percent"),
+    percent: z.number().min(0).max(100)
+  })
+  .strict();
+
+export const hpMeasurementSchema = z.discriminatedUnion("unit", [
+  exactHpSchema,
+  percentageHpSchema
+]);
 
 export const battleFormatSchema = z.enum(["champions-vgc-doubles"]);
 
@@ -139,10 +152,11 @@ export const pokemonSetSchema = z
   })
   .strict();
 
-export const activePokemonSchema = hpStateSchema
-  .extend({
+export const activePokemonSchema = z
+  .object({
     slot: activeSlotSchema,
     set: pokemonSetSchema,
+    hp: hpMeasurementSchema,
     status: statusConditionSchema.default("healthy"),
     boosts: statBoostsSchema.default(defaultStatBoosts),
     volatileEffectIds: z.array(canonicalIdSchema).default([]),
@@ -150,10 +164,11 @@ export const activePokemonSchema = hpStateSchema
   })
   .strict();
 
-export const benchPokemonSchema = hpStateSchema
-  .extend({
+export const benchPokemonSchema = z
+  .object({
     benchSlot: z.number().int().min(0).max(5),
     set: pokemonSetSchema,
+    hp: hpMeasurementSchema,
     status: statusConditionSchema.default("healthy"),
     fainted: z.boolean().default(false)
   })
@@ -274,12 +289,39 @@ export const battleStateSchema = z
         });
       }
     }
+
+    const opponentSide = battleState.playerSide === "p1" ? "p2" : "p1";
+
+    for (const collection of ["active", "bench"] as const) {
+      battleState.teams[battleState.playerSide][collection].forEach((pokemon, index) => {
+        if (pokemon.hp.unit !== "exact") {
+          ctx.addIssue({
+            code: "custom",
+            message: "The player's Pokemon must use exact HP.",
+            path: ["teams", battleState.playerSide, collection, index, "hp"]
+          });
+        }
+      });
+
+      battleState.teams[opponentSide][collection].forEach((pokemon, index) => {
+        if (pokemon.hp.unit !== "percent") {
+          ctx.addIssue({
+            code: "custom",
+            message: "Opponent Pokemon must use percentage HP.",
+            path: ["teams", opponentSide, collection, index, "hp"]
+          });
+        }
+      });
+    }
   });
 
 export type BattleFormat = z.infer<typeof battleFormatSchema>;
 export type PlayerSide = z.infer<typeof playerSideSchema>;
 export type StatTable = z.infer<typeof statTableSchema>;
 export type StatBoosts = z.infer<typeof statBoostsSchema>;
+export type ExactHp = z.infer<typeof exactHpSchema>;
+export type PercentageHp = z.infer<typeof percentageHpSchema>;
+export type HpMeasurement = z.infer<typeof hpMeasurementSchema>;
 export type PokemonSet = z.infer<typeof pokemonSetSchema>;
 export type ActivePokemon = z.infer<typeof activePokemonSchema>;
 export type BenchPokemon = z.infer<typeof benchPokemonSchema>;

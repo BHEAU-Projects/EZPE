@@ -1,18 +1,46 @@
-// Future advice result model.
-//
-// This module should describe the ranked output returned by /analyze.
-// The advisor should return multiple candidate actions so a learner can see
-// the tradeoffs instead of receiving one mysterious "best move."
-//
-// Planned result fields:
-// - action: move, switch, target, and side-specific action metadata.
-// - rank: sorted position among legal actions.
-// - score: normalized numeric value used for comparison.
-// - confidence: how strongly the advisor prefers this action over alternatives.
-// - explanationTags: compact labels such as KO chance, damage, speed control,
-//   defensive safety, setup value, board position, or high risk.
-// - outcomeSummary: short text explaining the likely simulated result.
-// - debug details: optional raw simulator/search values for learning and tests.
-//
-// Keep user-facing explanations separate from raw scoring internals so the API
-// can later support both beginner-friendly and advanced output modes.
+import type { LegalAction, PlayerSide } from "./battle-state.js";
+import type { SingleTurnSimulationResult } from "../sim/showdown-adapter.js";
+
+export type ExplanationTag =
+  | "confirmed-ko"
+  | "heavy-damage"
+  | "took-damage"
+  | "low-risk"
+  | "high-risk";
+
+export interface ActionPlan {
+  id: string;
+  side: PlayerSide;
+  actions: LegalAction[];
+  showdownChoice: string;
+}
+
+export interface ScoreBreakdown {
+  damageDealt: number;
+  damageTaken: number;
+  kosDealt: number;
+  kosTaken: number;
+  playerRemainingHp: number;
+  opponentRemainingHp: number;
+  riskPenalty: number;
+}
+
+export interface AdviceResult {
+  rank: number;
+  actionPlan: ActionPlan;
+  score: number;
+  confidence: number;
+  explanationTags: ExplanationTag[];
+  outcomeSummary: string;
+  debug: {
+    scoreBreakdown: ScoreBreakdown;
+    simulation: SingleTurnSimulationResult;
+  };
+}
+
+export interface RankMovesInput {
+  opponentChoice: string;
+  p1TeamPreviewChoice?: string;
+  p2TeamPreviewChoice?: string;
+  seed?: readonly [number, number, number, number];
+}
