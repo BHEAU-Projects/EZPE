@@ -14,6 +14,8 @@ export function createBattleStateFromTeams(options: {
   playerSide: PlayerSide;
   p1Team: PokemonSet[];
   p2Team: PokemonSet[];
+  p1PreviewRoster?: PokemonSet[];
+  p2PreviewRoster?: PokemonSet[];
 }): BattleState {
   assertBattleTeamSize(options.p1Team, "p1");
   assertBattleTeamSize(options.p2Team, "p2");
@@ -24,8 +26,8 @@ export function createBattleStateFromTeams(options: {
     turnNumber: 1,
     playerSide: options.playerSide,
     teams: {
-      p1: createTeamState("p1", options.p1Team, options.playerSide),
-      p2: createTeamState("p2", options.p2Team, options.playerSide)
+      p1: createTeamState("p1", options.p1Team, options.playerSide, options.p1PreviewRoster),
+      p2: createTeamState("p2", options.p2Team, options.playerSide, options.p2PreviewRoster)
     },
     field: {},
     legalActions: []
@@ -60,7 +62,8 @@ export function saveBattleSessionFile(path: string, session: BattleSession): voi
 function createTeamState(
   side: PlayerSide,
   sets: PokemonSet[],
-  playerSide: PlayerSide
+  playerSide: PlayerSide,
+  previewRoster?: PokemonSet[]
 ): TeamState {
   const hpFor = (set: PokemonSet) =>
     side === playerSide
@@ -69,6 +72,7 @@ function createTeamState(
 
   return {
     side,
+    ...(previewRoster ? { previewRoster } : {}),
     active: sets.slice(0, 2).map((set, index) => ({
       slot: `${side}${index === 0 ? "a" : "b"}`,
       set,

@@ -76,6 +76,7 @@ export function importTeam(
     return pokemonSetSchema.parse({
       speciesId,
       displayName: rawSet.name || species.name,
+      ...(rawSet.gender ? { gender: rawSet.gender } : {}),
       level,
       itemId: rawSet.item ? pokemonDataService.canonicalId(rawSet.item) : null,
       abilityId,

@@ -49,6 +49,19 @@ describe("battle session", () => {
     ).toBe(true);
   });
 
+  it("replaces the current state and clears prior session history", () => {
+    const session = createBattleSession(singleTurnBattleState);
+    session.applyEvent({ type: "status-applied", slot: "p1a", status: "par" });
+    const replacement = structuredClone(singleTurnBattleState);
+    replacement.turnNumber = 7;
+
+    session.replaceState(replacement);
+
+    expect(session.getState().turnNumber).toBe(7);
+    expect(session.getHistory()).toEqual([]);
+    expect(session.getSnapshots()).toEqual([replacement]);
+  });
+
   it("rejects invalid snapshot limits", () => {
     expect(() => createBattleSession(singleTurnBattleState, { maxSnapshots: 0 })).toThrow(
       /positive integer/

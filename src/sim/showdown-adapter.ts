@@ -139,7 +139,7 @@ export function getShowdownFormatIdForRegulation(regulationId: string): string {
 export function toShowdownPokemonSet(set: PokemonSet): ShowdownPokemonSet {
   return {
     name: set.displayName ?? set.speciesId,
-    species: set.displayName ?? set.speciesId,
+    species: set.formId ?? set.speciesId,
     item: set.itemId ?? "",
     ability: set.abilityId,
     moves: [...set.moveIds],
@@ -147,7 +147,7 @@ export function toShowdownPokemonSet(set: PokemonSet): ShowdownPokemonSet {
     evs: set.evs ?? defaultStats,
     ivs: set.ivs ?? defaultIvs,
     level: set.level,
-    gender: ""
+    gender: set.gender ?? ""
   };
 }
 

@@ -10,6 +10,7 @@ export interface BattleSessionOptions {
 
 export interface BattleSession {
   getState(): BattleState;
+  replaceState(nextState: BattleState): BattleState;
   applyEvent(event: BattleEvent): BattleState;
   rank(input: RankMovesInput): AdviceResult[];
   getHistory(): BattleEvent[];
@@ -32,6 +33,13 @@ export function createBattleSession(
 
   return {
     getState() {
+      return structuredClone(state);
+    },
+
+    replaceState(nextState) {
+      state = battleStateSchema.parse(structuredClone(nextState));
+      history.splice(0, history.length);
+      snapshots.splice(0, snapshots.length, structuredClone(state));
       return structuredClone(state);
     },
 

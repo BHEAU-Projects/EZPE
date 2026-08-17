@@ -29,7 +29,10 @@ export const quickCapturePage = String.raw`<!doctype html>
     .brand { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
     .brand h1 { margin: 0; font-size: 22px; line-height: 1; letter-spacing: 0; }
     .brand span { color: #c8d1d9; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .header-actions { display: flex; align-items: center; gap: 10px; }
     .connection { font-size: 12px; color: #bde4c4; white-space: nowrap; }
+    .setup-link { color: #ffffff; font-size: 12px; font-weight: 750; text-decoration: none; border: 1px solid #63717d; border-radius: 5px; padding: 7px 10px; }
+    .setup-link:hover { background: #293743; }
     main { width: min(1480px, 100%); margin: 0 auto; padding: 16px; }
     .topbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 14px; margin-bottom: 14px; }
     .battle-meta { font-size: 14px; font-weight: 700; }
@@ -101,7 +104,7 @@ export const quickCapturePage = String.raw`<!doctype html>
 <body>
   <header class="app-header">
     <div class="brand"><h1>EZPE</h1><span>Quick Capture</span></div>
-    <div class="connection" id="connection">Local session</div>
+    <div class="header-actions"><a class="setup-link" href="/setup/player">Edit teams</a><div class="connection" id="connection">Local session</div></div>
   </header>
   <main>
     <section class="topbar">
@@ -245,8 +248,18 @@ export const quickCapturePage = String.raw`<!doctype html>
       battleState.teams[side].active.forEach(function(pokemon) {
         list.appendChild(renderPokemon(pokemon, side, isOpponent));
       });
-      section.append(heading, list, renderSideConditions(side));
+      section.append(heading, renderPreviewRoster(side), list, renderSideConditions(side));
       return section;
+    }
+
+    function renderPreviewRoster(side) {
+      var wrapper = element("div", "chips");
+      var roster = battleState.teams[side].previewRoster || [];
+      roster.forEach(function(set) {
+        var gender = set.gender ? " (" + set.gender + ")" : "";
+        wrapper.appendChild(element("span", "chip " + (side === battleState.playerSide ? "observed" : "assumed"), (set.displayName || set.speciesId) + gender));
+      });
+      return wrapper;
     }
 
     function renderPokemon(pokemon, side, isOpponent) {
@@ -254,7 +267,7 @@ export const quickCapturePage = String.raw`<!doctype html>
       var title = element("div", "pokemon-title");
       title.append(
         element("h3", "", pokemon.set.displayName || pokemon.set.speciesId),
-        element("span", "slot", pokemon.slot)
+        element("span", "slot", pokemon.slot + (pokemon.set.gender ? " / " + pokemon.set.gender : ""))
       );
       card.appendChild(title);
 

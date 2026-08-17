@@ -6,7 +6,7 @@ The goal is to accept a structured battle state from Pokemon Champions Doubles/V
 
 ## Current Status
 
-The project has a validated battle-state contract, regulation and usage snapshots, accuracy-aware damage utilities, a single-turn Pokemon Showdown adapter, opponent-response ranking, an event-driven battle session, a terminal workflow, and a local Quick Capture browser screen.
+The project has a validated battle-state contract, regulation and usage snapshots, accuracy-aware damage utilities, a single-turn Pokemon Showdown adapter, opponent-response ranking, an event-driven battle session, a browser team-setup flow, a terminal workflow, and a local Quick Capture screen.
 
 ## Planned Commands
 
@@ -45,7 +45,7 @@ npm run cli -- --player-team player.txt --opponent-team opponent.txt --regulatio
 
 Inside the CLI, use `help` to list compact update and ranking commands. Record a newly revealed opponent move with `move p2a fakeout`.
 
-## Quick Capture Screen
+## Browser Setup And Quick Capture
 
 Start the local screen with sample data:
 
@@ -53,7 +53,18 @@ Start the local screen with sample data:
 npm run dev
 ```
 
-Then open `http://127.0.0.1:4173`. Start a real session from files with:
+Then open `http://127.0.0.1:4173`. The first page records your six-Pokemon
+preview roster, full build details, and the four Pokemon selected for battle. The
+second page records the opposing preview roster and two expected leads. Starting
+the battle opens the live-turn screen at `http://127.0.0.1:4173/battle`.
+
+Your roster stores species or battle-relevant form, gender, nickname, Ability,
+item, nature/stat alignment, level, moves, IVs, and EVs. The app calculates battle
+stats from those inputs. The opponent setup only needs species or form and gender;
+hidden Abilities, stats, and moves use neutral or local usage-based assumptions
+until observations in battle replace them.
+
+You can also start a real session from files with:
 
 ```bash
 npm run quick -- --player-team player.txt --opponent-team opponent.txt --regulation champions-m-b

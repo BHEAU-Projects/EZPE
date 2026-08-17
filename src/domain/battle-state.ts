@@ -82,6 +82,8 @@ export const statusConditionSchema = z.enum([
   "tox"
 ]);
 
+export const pokemonGenderSchema = z.enum(["M", "F", "N"]);
+
 export const statTableSchema = z
   .object({
     hp: z.number().int().min(1).max(999),
@@ -166,6 +168,7 @@ export const pokemonSetSchema = z
     speciesId: canonicalIdSchema,
     displayName: displayNameSchema,
     formId: canonicalIdSchema.optional(),
+    gender: pokemonGenderSchema.optional(),
     level: z.number().int().min(1).max(100).default(50),
     itemId: canonicalIdSchema.nullable().default(null),
     abilityId: canonicalIdSchema,
@@ -228,6 +231,7 @@ export const teamStateSchema = z
     side: playerSideSchema,
     active: z.array(activePokemonSchema).min(1).max(2),
     bench: z.array(benchPokemonSchema).max(4).default([]),
+    previewRoster: z.array(pokemonSetSchema).min(2).max(6).optional(),
     sideConditions: sideConditionsSchema.default(defaultSideConditions)
   })
   .strict()
@@ -354,6 +358,7 @@ export type BattleFormat = z.infer<typeof battleFormatSchema>;
 export type PlayerSide = z.infer<typeof playerSideSchema>;
 export type TargetSlot = z.infer<typeof targetSlotSchema>;
 export type StatusCondition = z.infer<typeof statusConditionSchema>;
+export type PokemonGender = z.infer<typeof pokemonGenderSchema>;
 export type StatTable = z.infer<typeof statTableSchema>;
 export type StatBoosts = z.infer<typeof statBoostsSchema>;
 export type ExactHp = z.infer<typeof exactHpSchema>;

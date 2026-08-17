@@ -17,18 +17,68 @@ function createApp(): FastifyInstance {
 }
 
 describe("Quick Capture server", () => {
-  it("serves the operational capture screen and health endpoint", async () => {
+  it("serves team setup before the operational capture screen", async () => {
     const server = createApp();
-    const [page, health] = await Promise.all([
+    const [setup, battle, health] = await Promise.all([
       server.inject({ method: "GET", url: "/" }),
+      server.inject({ method: "GET", url: "/battle" }),
       server.inject({ method: "GET", url: "/health" })
     ]);
 
-    expect(page.statusCode).toBe(200);
-    expect(page.headers["content-type"]).toContain("text/html");
-    expect(page.body).toContain("EZPE Quick Capture");
-    expect(page.body).toContain("Analyze turn");
+    expect(setup.statusCode).toBe(200);
+    expect(setup.headers["content-type"]).toContain("text/html");
+    expect(setup.body).toContain("EZPE Team Setup");
+    expect(setup.body).toContain("Your Champions team");
+    expect(battle.body).toContain("EZPE Quick Capture");
+    expect(battle.body).toContain("Analyze turn");
     expect(health.json()).toEqual({ status: "ok", version: "0.1.0" });
+  });
+
+  it("builds a live battle from player and opponent setup submissions", async () => {
+    const server = createApp();
+    const team = [
+      ...singleTurnBattleState.teams.p1.active,
+      ...singleTurnBattleState.teams.p2.active
+    ].map((pokemon) => ({
+      speciesId: pokemon.set.speciesId,
+      nickname: pokemon.set.displayName,
+      gender: "M",
+      level: pokemon.set.level,
+      abilityId: pokemon.set.abilityId,
+      itemId: pokemon.set.itemId,
+      moveIds: pokemon.set.moveIds,
+      nature: pokemon.set.nature ?? "Serious",
+      ivs: pokemon.set.ivs ?? { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+      evs: pokemon.set.evs ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }
+    }));
+
+    const player = await server.inject({
+      method: "POST",
+      url: "/api/setup/player",
+      payload: { regulationId: "development", pokemon: team, battleOrder: [0, 1, 2, 3] }
+    });
+    const opponent = await server.inject({
+      method: "POST",
+      url: "/api/setup/opponent",
+      payload: {
+        pokemon: [
+          { speciesId: "squirtle", gender: "M" },
+          { speciesId: "charmander", gender: "F" },
+          { speciesId: "bulbasaur", gender: "M" },
+          { speciesId: "pikachu", gender: "F" }
+        ],
+        leadOrder: [1, 0]
+      }
+    });
+
+    expect(player.statusCode).toBe(200);
+    expect(opponent.statusCode).toBe(200);
+    expect(opponent.json()).toMatchObject({ next: "/battle" });
+    const state = await server.inject({ method: "GET", url: "/api/state" });
+    expect(state.json().state.teams.p2.active).toMatchObject([
+      { set: { speciesId: "charmander", gender: "F" } },
+      { set: { speciesId: "squirtle", gender: "M" } }
+    ]);
   });
 
   it("returns state and applies a fast HP update", async () => {

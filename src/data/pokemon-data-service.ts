@@ -2,7 +2,12 @@ import { Generations } from "@pkmn/data";
 import { Dex as PkmnDex, toID } from "@pkmn/dex";
 import PokemonShowdown from "pokemon-showdown";
 
-import type { BattleState, PokemonSet, StatTable } from "../domain/battle-state.js";
+import type {
+  BattleState,
+  PokemonGender,
+  PokemonSet,
+  StatTable
+} from "../domain/battle-state.js";
 import { getOverridesForRegulation } from "./champions-overrides.js";
 import {
   getRegulationById,
@@ -27,6 +32,25 @@ export interface SpeciesData {
   baseStats: StatTable;
   abilityIds: string[];
   nationalDexNumber: number;
+  genderOptions: PokemonGender[];
+}
+
+export interface SetupCatalogEntry {
+  id: string;
+  name: string;
+}
+
+export interface SetupSpeciesEntry extends SetupCatalogEntry {
+  abilityIds: string[];
+  genderOptions: PokemonGender[];
+}
+
+export interface SetupCatalog {
+  species: SetupSpeciesEntry[];
+  moves: SetupCatalogEntry[];
+  items: SetupCatalogEntry[];
+  abilities: SetupCatalogEntry[];
+  natures: string[];
 }
 
 export interface MoveData {
@@ -75,8 +99,73 @@ export class PokemonDataService {
       abilityIds: Object.values(species.abilities)
         .filter((ability): ability is string => Boolean(ability))
         .map((ability) => this.canonicalId(ability)),
-      nationalDexNumber: species.num
+      nationalDexNumber: species.num,
+      genderOptions: getGenderOptions(species.gender)
     };
+  }
+
+  getSetupCatalog(regulationId: string): SetupCatalog {
+    const dex = this.getDex(regulationId);
+    return {
+      species: dex.species.all()
+        .filter((species) =>
+          species.exists && species.num > 0 && !species.isMega && !species.battleOnly
+        )
+        .map((species) => ({
+          id: species.id,
+          name: species.name,
+          abilityIds: Object.values(species.abilities)
+            .filter((ability): ability is string => Boolean(ability))
+            .map((ability) => this.canonicalId(ability)),
+          genderOptions: getGenderOptions(species.gender)
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+      moves: dex.moves.all()
+        .filter((move) => move.exists && !move.isNonstandard)
+        .map((move) => ({ id: move.id, name: move.name }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+      items: dex.items.all()
+        .filter((item) => item.exists && !item.isNonstandard)
+        .map((item) => ({ id: item.id, name: item.name }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+      abilities: dex.abilities.all()
+        .filter((ability) => ability.exists && !ability.isNonstandard)
+        .map((ability) => ({ id: ability.id, name: ability.name }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+      natures: dex.natures.all().map((nature) => nature.name).sort()
+    };
+  }
+
+  getFallbackMoveIds(regulationId: string, speciesId: string): string[] {
+    const dex = this.getDex(regulationId);
+    const species = dex.species.get(this.canonicalId(speciesId));
+    if (!species.exists) return [];
+
+    const types = new Set(species.types);
+    const moves = [...dex.species.getMovePool(species.id)]
+      .map((moveId) => dex.moves.get(moveId))
+      .filter((move) => move.exists && !move.isNonstandard);
+    const protect = moves.find((move) => move.id === "protect");
+    const damaging = moves
+      .filter((move) => move.category !== "Status" && move.basePower > 0)
+      .sort((a, b) =>
+        Number(types.has(b.type)) - Number(types.has(a.type)) ||
+        effectiveMovePower(b) - effectiveMovePower(a) ||
+        a.name.localeCompare(b.name)
+      );
+    const status = moves
+      .filter((move) => move.category === "Status" && move.id !== "protect")
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    const selectedMoveIds = [...new Set([
+      ...(protect ? [protect.id] : []),
+      ...damaging.map((move) => move.id),
+      ...status.map((move) => move.id)
+    ])].slice(0, 4);
+
+    // Some development-only species have no generation-nine learnset data.
+    // Struggle keeps hidden-opponent setup usable without pretending a real set is known.
+    return selectedMoveIds.length > 0 ? selectedMoveIds : ["struggle"];
   }
 
   getMove(regulationId: string, moveId: string): MoveData | undefined {
@@ -160,6 +249,10 @@ export class PokemonDataService {
         const duplicate = seenSpecies.get(speciesKey);
         if (duplicate) errors.push(`${label}: duplicates species with ${duplicate}.`);
         seenSpecies.set(speciesKey, label);
+      }
+
+      if (species && set.gender && !species.genderOptions.includes(set.gender)) {
+        errors.push(`${label}: gender '${set.gender}' is not valid for ${species.name}.`);
       }
 
       if (!this.getAbilityExists(regulationId, set.abilityId)) {
@@ -271,9 +364,19 @@ export class PokemonDataService {
       nature: set.nature ?? "Serious",
       evs: set.evs,
       ivs: set.ivs,
-      level: set.level
+      level: set.level,
+      gender: set.gender
     })) as ValidatorTeam;
   }
+}
+
+function getGenderOptions(gender: string | undefined): PokemonGender[] {
+  if (gender === "M" || gender === "F" || gender === "N") return [gender];
+  return ["M", "F"];
+}
+
+function effectiveMovePower(move: { basePower: number; accuracy: number | true }): number {
+  return move.basePower * (move.accuracy === true ? 1 : move.accuracy / 100);
 }
 
 export function validateRegulationSnapshots(

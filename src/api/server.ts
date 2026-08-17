@@ -7,7 +7,9 @@ import type { BattleState } from "../domain/battle-state.js";
 import { loadInitialState } from "../io/initial-state.js";
 import { createBattleSession } from "../session/battle-session.js";
 import { quickCapturePage } from "../ui/quick-capture-page.js";
+import { teamSetupPage } from "../ui/team-setup-page.js";
 import { registerSessionRoutes } from "./routes/session.js";
+import { registerSetupRoutes } from "./routes/setup.js";
 
 export function buildServer(initialState: BattleState): FastifyInstance {
   const validation = pokemonDataService.validateBattleState(initialState);
@@ -17,7 +19,12 @@ export function buildServer(initialState: BattleState): FastifyInstance {
   const session = createBattleSession(initialState, { maxSnapshots: 100 });
 
   app.get("/health", async () => ({ status: "ok", version: "0.1.0" }));
-  app.get("/", async (_request, reply) => reply.type("text/html; charset=utf-8").send(quickCapturePage));
+  app.get("/", async (_request, reply) => reply.type("text/html; charset=utf-8").send(teamSetupPage));
+  app.get("/setup", async (_request, reply) => reply.type("text/html; charset=utf-8").send(teamSetupPage));
+  app.get("/setup/player", async (_request, reply) => reply.type("text/html; charset=utf-8").send(teamSetupPage));
+  app.get("/setup/opponent", async (_request, reply) => reply.type("text/html; charset=utf-8").send(teamSetupPage));
+  app.get("/battle", async (_request, reply) => reply.type("text/html; charset=utf-8").send(quickCapturePage));
+  registerSetupRoutes(app, session);
   registerSessionRoutes(app, session);
 
   return app;
