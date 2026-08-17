@@ -16,6 +16,11 @@ import { scoreSingleTurnOutcome } from "./scoring.js";
 import { generateLegalActions } from "./legal-action-generator.js";
 
 export function rankMoves(battleState: BattleState, input: RankMovesInput): AdviceResult[] {
+  const opponentSide = battleState.playerSide === "p1" ? "p2" : "p1";
+  if (!hasLivingActive(battleState, battleState.playerSide) || !hasLivingActive(battleState, opponentSide)) {
+    return [];
+  }
+
   const actionPlans = generateActionPlansForSide(battleState, battleState.playerSide);
   const opponentPlans = getOpponentPlans(battleState, input);
   const seeds = getSimulationSeeds(input);
@@ -103,7 +108,11 @@ export function generateActionPlansForSide(
   battleState: BattleState,
   side: PlayerSide
 ): ActionPlan[] {
-  const activeSlots = battleState.teams[side].active.map((pokemon) => pokemon.slot).sort();
+  const activeSlots = battleState.teams[side].active
+    .filter((pokemon) => !isFainted(pokemon.hp))
+    .map((pokemon) => pokemon.slot)
+    .sort();
+  if (activeSlots.length === 0) return [];
   const legalActions = generateLegalActions(battleState, side);
   const actionsBySlot = new Map(
     activeSlots.map((slot) => [
@@ -250,4 +259,12 @@ function isValidCombinedPlan(actions: LegalAction[]): boolean {
 
 function calculateConfidence(score: number, nextBestScore: number, scoreGap: number): number {
   return Math.min(1, Math.max(0, (score - nextBestScore) / scoreGap));
+}
+
+function hasLivingActive(battleState: BattleState, side: PlayerSide): boolean {
+  return battleState.teams[side].active.some((pokemon) => !isFainted(pokemon.hp));
+}
+
+function isFainted(hp: BattleState["teams"][PlayerSide]["active"][number]["hp"]): boolean {
+  return hp.unit === "exact" ? hp.current === 0 : hp.percent === 0;
 }

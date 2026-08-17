@@ -9,7 +9,7 @@ import type {
   StatTable,
   TeamState
 } from "../domain/battle-state.js";
-import { fixedChampionsIvs } from "../domain/battle-state.js";
+import { battleStateSchema, fixedChampionsIvs } from "../domain/battle-state.js";
 import { getRegulationById } from "../data/regulations.js";
 import {
   captureHydratedBattleState,
@@ -146,19 +146,20 @@ export function createSingleTurnSimulationInputFromBattleState(
   battleState: BattleState,
   choices: BattleStateSingleTurnChoices
 ): SingleTurnSimulationInput {
+  const simulationState = normalizeBattleStateForShowdown(battleState);
   return {
-    formatId: getShowdownFormatIdForRegulation(battleState.regulationId),
-    battleState: structuredClone(battleState),
+    formatId: getShowdownFormatIdForRegulation(simulationState.regulationId),
+    battleState: simulationState,
     p1: {
       name: "Player 1",
-      team: toShowdownTeam(battleState.teams.p1),
-      teamPreviewChoice: choices.p1TeamPreviewChoice ?? defaultTeamPreviewChoice(battleState.teams.p1.active.length),
+      team: toShowdownTeam(simulationState.teams.p1),
+      teamPreviewChoice: choices.p1TeamPreviewChoice ?? defaultTeamPreviewChoice(simulationState.teams.p1.active.length),
       turnChoice: choices.p1Choice
     },
     p2: {
       name: "Player 2",
-      team: toShowdownTeam(battleState.teams.p2),
-      teamPreviewChoice: choices.p2TeamPreviewChoice ?? defaultTeamPreviewChoice(battleState.teams.p2.active.length),
+      team: toShowdownTeam(simulationState.teams.p2),
+      teamPreviewChoice: choices.p2TeamPreviewChoice ?? defaultTeamPreviewChoice(simulationState.teams.p2.active.length),
       turnChoice: choices.p2Choice
     }
   };
@@ -173,12 +174,24 @@ export function buildShowdownChoiceFromLegalActions(
     .filter((action) => action.activeSlot.startsWith(side))
     .sort((a, b) => a.activeSlot.localeCompare(b.activeSlot));
 
-  if (sideActions.length === 0) {
+  if (sideActions.length === 0 && !teamState) {
     throw new Error(`No actions were provided for ${side}.`);
   }
 
-  return sideActions
-    .map((action) => {
+  const actionBySlot = new Map(sideActions.map((action) => [action.activeSlot, action]));
+  const slots: Array<LegalAction["activeSlot"]> = teamState
+    ? [`${side}a`, `${side}b`] as Array<LegalAction["activeSlot"]>
+    : sideActions.map((action) => action.activeSlot);
+
+  return slots
+    .map((slot) => {
+      const action = actionBySlot.get(slot);
+      if (!action) {
+        const active = teamState?.active.find((pokemon) => pokemon.slot === slot);
+        if (!active || isFaintedHp(active.hp)) return "pass";
+        throw new Error(`No action was provided for living active slot ${slot}.`);
+      }
+
       if (action.type === "switch") {
         const benchIndex = teamState
           ? [...teamState.bench]
@@ -199,6 +212,10 @@ export function buildShowdownChoiceFromLegalActions(
       return `${choice}${toShowdownSpecialMechanicSuffix(action.specialMechanic?.kind)}`;
     })
     .join(", ");
+}
+
+function isFaintedHp(hp: HpMeasurement): boolean {
+  return hp.unit === "exact" ? hp.current === 0 : hp.percent === 0;
 }
 
 export function simulateSingleTurn(input: SingleTurnSimulationInput): SingleTurnSimulationResult {
@@ -264,20 +281,21 @@ export function createHydratedBattleFromState(
   battleState: BattleState,
   seed?: SingleTurnSimulationInput["seed"]
 ): Battle {
+  const simulationState = normalizeBattleStateForShowdown(battleState);
   const battle = new Battle({
-    formatid: getShowdownFormatIdForRegulation(battleState.regulationId) as never,
+    formatid: getShowdownFormatIdForRegulation(simulationState.regulationId) as never,
     seed: toShowdownSeed(seed),
     strictChoices: true
   });
 
   try {
-    battle.setPlayer("p1", { name: "Player 1", team: toShowdownTeam(battleState.teams.p1) });
-    battle.setPlayer("p2", { name: "Player 2", team: toShowdownTeam(battleState.teams.p2) });
+    battle.setPlayer("p1", { name: "Player 1", team: toShowdownTeam(simulationState.teams.p1) });
+    battle.setPlayer("p2", { name: "Player 2", team: toShowdownTeam(simulationState.teams.p2) });
 
     if (battle.requestState === "teampreview") {
       battle.makeChoices(
-        defaultTeamPreviewChoice(battleState.teams.p1.active.length),
-        defaultTeamPreviewChoice(battleState.teams.p2.active.length)
+        defaultTeamPreviewChoice(simulationState.teams.p1.active.length),
+        defaultTeamPreviewChoice(simulationState.teams.p2.active.length)
       );
     }
 
@@ -285,13 +303,39 @@ export function createHydratedBattleFromState(
       throw new Error(`Expected a move request, received ${battle.requestState || "none"}.`);
     }
 
-    hydrateBattleState(battle, battleState);
+    hydrateBattleState(battle, simulationState);
     battle.makeRequest("move");
     return battle;
   } catch (error) {
     battle.destroy();
     throw error;
   }
+}
+
+function normalizeBattleStateForShowdown(battleState: BattleState): BattleState {
+  const normalized = structuredClone(battleState);
+
+  for (const side of ["p1", "p2"] as const) {
+    const team = normalized.teams[side];
+    if (team.active.length !== 1) continue;
+
+    const existing = team.active[0];
+    const missingSlot = `${side}${existing.slot.endsWith("a") ? "b" : "a"}` as typeof existing.slot;
+    team.active.push({
+      ...structuredClone(existing),
+      slot: missingSlot,
+      hp: existing.hp.unit === "exact"
+        ? { ...existing.hp, current: 0 }
+        : { unit: "percent", percent: 0 },
+      status: "healthy",
+      boosts: { atk: 0, def: 0, spa: 0, spd: 0, spe: 0, accuracy: 0, evasion: 0 },
+      volatileEffectIds: [],
+      protectedThisTurn: false
+    });
+    team.active.sort((a, b) => a.slot.localeCompare(b.slot));
+  }
+
+  return battleStateSchema.parse(normalized);
 }
 
 function defaultTeamPreviewChoice(activeCount: number): string {
