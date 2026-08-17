@@ -67,6 +67,7 @@ export interface MoveData {
   priority: number;
   pp: number;
   target: string;
+  effectScore: number;
 }
 
 export interface TeamValidationOptions {
@@ -187,7 +188,8 @@ export class PokemonDataService {
       accuracy: move.accuracy,
       priority: move.priority,
       pp: move.pp,
-      target: move.target
+      target: move.target,
+      effectScore: calculateMoveEffectScore(move)
     };
   }
 
@@ -386,6 +388,18 @@ function getGenderOptions(gender: string | undefined): PokemonGender[] {
 
 function effectiveMovePower(move: { basePower: number; accuracy: number | true }): number {
   return move.basePower * (move.accuracy === true ? 1 : move.accuracy / 100);
+}
+
+function calculateMoveEffectScore(move: ReturnType<ReturnType<typeof ShowdownDex.forFormat>["moves"]["get"]>): number {
+  let score = 0;
+  if (move.status || move.volatileStatus || move.boosts || move.self?.boosts) score += 20;
+  if (move.weather || move.terrain || move.pseudoWeather || move.sideCondition || move.self?.sideCondition) score += 25;
+  const secondaries = move.secondaries ?? (move.secondary ? [move.secondary] : []);
+  score += secondaries.reduce((total, secondary) => {
+    const hasEffect = secondary.status || secondary.volatileStatus || secondary.boosts || secondary.self?.boosts;
+    return total + (hasEffect ? 20 * (secondary.chance ?? 100) / 100 : 0);
+  }, 0);
+  return score;
 }
 
 export function validateRegulationSnapshots(

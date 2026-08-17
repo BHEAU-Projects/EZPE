@@ -209,7 +209,7 @@ function scoreOpponentPlanPriority(battleState: BattleState, plan: ActionPlan): 
     if (action.type === "switch") return score + 10;
     const move = pokemonDataService.getMove(battleState.regulationId, action.moveId);
     if (!move) return score;
-    return score + move.basePower + Math.max(0, move.priority) * 20 + (move.basePower === 0 ? 5 : 0);
+    return score + move.basePower + move.effectScore + Math.max(0, move.priority) * 20 + (move.basePower === 0 ? 5 : 0);
   }, 0);
 }
 
@@ -221,7 +221,13 @@ function getSimulationSeeds(input: RankMovesInput): SimulationSeed[] {
   if (input.seed) return [input.seed];
   return [
     [1, 2, 3, 4],
-    [5, 6, 7, 8]
+    [5, 6, 7, 8],
+    [9, 10, 11, 12],
+    [13, 14, 15, 16],
+    [17, 18, 19, 20],
+    [21, 22, 23, 24],
+    [25, 26, 27, 28],
+    [29, 30, 31, 32]
   ];
 }
 

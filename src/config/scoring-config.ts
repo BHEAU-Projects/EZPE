@@ -11,7 +11,16 @@ export const scoringConfigSchema = z
         damageDealt: z.number().min(0),
         damageTakenPenalty: z.number().min(0),
         koDealt: z.number().min(0),
-        koTakenPenalty: z.number().min(0)
+        koTakenPenalty: z.number().min(0),
+        majorStatusInflicted: z.number().min(0).default(30),
+        majorStatusTakenPenalty: z.number().min(0).default(35),
+        actionDenied: z.number().min(0).default(45),
+        actionLostPenalty: z.number().min(0).default(50),
+        statStageAdvantage: z.number().min(0).default(8),
+        speedControl: z.number().min(0).default(12),
+        fieldControl: z.number().min(0).default(10),
+        sideConditionAdvantage: z.number().min(0).default(15),
+        forcedSwitch: z.number().min(0).default(20)
       })
       .strict(),
     thresholds: z

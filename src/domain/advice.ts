@@ -6,7 +6,13 @@ export type ExplanationTag =
   | "heavy-damage"
   | "took-damage"
   | "low-risk"
-  | "high-risk";
+  | "high-risk"
+  | "inflicted-status"
+  | "action-denial"
+  | "speed-control"
+  | "field-control"
+  | "forced-switch"
+  | "miss-risk";
 
 export interface ActionPlan {
   id: string;
@@ -23,6 +29,15 @@ export interface ScoreBreakdown {
   playerRemainingHp: number;
   opponentRemainingHp: number;
   riskPenalty: number;
+  statusesInflicted: number;
+  statusesTaken: number;
+  actionsDenied: number;
+  actionsLost: number;
+  statStageAdvantage: number;
+  speedControl: number;
+  fieldControl: number;
+  sideConditionAdvantage: number;
+  forcedSwitches: number;
 }
 
 export interface AdviceResult {

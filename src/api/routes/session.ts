@@ -88,6 +88,9 @@ function rankPayload(session: BattleSession, top: number, maxOpponentPlans: numb
     worstCase: presenter.findWorstEnemyDamagePlan(result.actionPlan),
     score: result.score,
     confidence: result.confidence,
+    explanationTags: result.explanationTags,
+    outcomeSummary: result.outcomeSummary,
+    scoreBreakdown: result.debug.scoreBreakdown,
     expectedScore: result.debug.opponentEvaluation.expectedScore,
     worstCaseScore: result.debug.opponentEvaluation.worstCaseScore
   }));

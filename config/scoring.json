@@ -4,7 +4,16 @@
     "damageDealt": 1,
     "damageTakenPenalty": 1,
     "koDealt": 100,
-    "koTakenPenalty": 120
+    "koTakenPenalty": 120,
+    "majorStatusInflicted": 30,
+    "majorStatusTakenPenalty": 35,
+    "actionDenied": 45,
+    "actionLostPenalty": 50,
+    "statStageAdvantage": 8,
+    "speedControl": 12,
+    "fieldControl": 10,
+    "sideConditionAdvantage": 15,
+    "forcedSwitch": 20
   },
   "thresholds": {
     "heavyDamage": 50

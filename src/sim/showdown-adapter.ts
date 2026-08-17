@@ -86,12 +86,78 @@ export interface ShowdownPokemonHpSummary {
   fainted: boolean;
 }
 
+export interface ShowdownStatusChange {
+  side: PlayerSide;
+  slot: string;
+  pokemon: string;
+  before: string;
+  after: string;
+}
+
+export interface ShowdownBoostChange {
+  side: PlayerSide;
+  slot: string;
+  pokemon: string;
+  stat: keyof import("../domain/battle-state.js").StatBoosts;
+  before: number;
+  after: number;
+  delta: number;
+}
+
+export interface ShowdownVolatileChange {
+  side: PlayerSide;
+  slot: string;
+  pokemon: string;
+  effectId: string;
+  change: "started" | "ended";
+}
+
+export interface ShowdownActionOutcome {
+  side: PlayerSide;
+  slot: string;
+  pokemon: string;
+  outcome: "moved" | "switched" | "denied" | "missed" | "failed" | "immune" | "fainted-before-action" | "not-observed";
+  move?: string;
+  reason?: string;
+}
+
+export interface ShowdownConditionChange {
+  scope: "field" | "side";
+  side?: PlayerSide;
+  conditionId: string;
+  change: "started" | "ended" | "changed";
+  sourceSide?: PlayerSide;
+}
+
+export interface ShowdownItemChange {
+  side: PlayerSide;
+  slot: string;
+  pokemon: string;
+  before: string;
+  after: string;
+}
+
+export interface ShowdownForcedSwitch {
+  side: PlayerSide;
+  slot: string;
+  pokemon: string;
+}
+
 export interface SingleTurnOutcomeSummary {
   hpByPokemon: ShowdownPokemonHpSummary[];
   faintedPokemon: ShowdownPokemonHpSummary[];
   damageTakenBySide: Record<PlayerSide, number>;
   kosTakenBySide: Record<PlayerSide, number>;
   movesBySide: Record<PlayerSide, ShowdownMoveEvent[]>;
+  statusChanges: ShowdownStatusChange[];
+  boostChanges: ShowdownBoostChange[];
+  volatileChanges: ShowdownVolatileChange[];
+  actionOutcomes: ShowdownActionOutcome[];
+  conditionChanges: ShowdownConditionChange[];
+  itemChanges: ShowdownItemChange[];
+  forcedSwitches: ShowdownForcedSwitch[];
+  criticalHitsBySide: Record<PlayerSide, number>;
+  missesBySide: Record<PlayerSide, number>;
 }
 
 export interface SingleTurnSimulationResult {
@@ -102,6 +168,7 @@ export interface SingleTurnSimulationResult {
   damageEvents: ShowdownDamageEvent[];
   summary: SingleTurnOutcomeSummary;
   initialState: HydratedBattleSummary;
+  finalState: HydratedBattleSummary;
   turn: number;
   ended: boolean;
   winner: string | null;
@@ -259,6 +326,7 @@ export function simulateSingleTurn(input: SingleTurnSimulationInput): SingleTurn
 
     const moveEvents = parseMoveEvents(log);
     const damageEvents = parseDamageEvents(log, initialHpBySlot);
+    const finalState = captureHydratedBattleState(battle);
 
     return {
       formatId: input.formatId,
@@ -266,8 +334,16 @@ export function simulateSingleTurn(input: SingleTurnSimulationInput): SingleTurn
       log,
       moveEvents,
       damageEvents,
-      summary: summarizeSingleTurnOutcome(log, moveEvents, damageEvents, initialHpBySlot),
+      summary: summarizeSingleTurnOutcome(
+        log,
+        moveEvents,
+        damageEvents,
+        initialHpBySlot,
+        initialState,
+        finalState
+      ),
       initialState,
+      finalState,
       turn: battle.turn,
       ended: battle.ended,
       winner: battle.winner ?? null
@@ -468,7 +544,9 @@ function summarizeSingleTurnOutcome(
   log: string[],
   moveEvents: ShowdownMoveEvent[],
   damageEvents: ShowdownDamageEvent[],
-  initialHpBySlot: ReadonlyMap<string, ShowdownPokemonHpSummary> = new Map()
+  initialHpBySlot: ReadonlyMap<string, ShowdownPokemonHpSummary> = new Map(),
+  initialState?: HydratedBattleSummary,
+  finalState?: HydratedBattleSummary
 ): SingleTurnOutcomeSummary {
   const hpBySlot = new Map<string, ShowdownPokemonHpSummary>(initialHpBySlot);
   let turnStarted = false;
@@ -509,7 +587,14 @@ function summarizeSingleTurnOutcome(
   }
 
   const hpByPokemon = [...hpBySlot.values()].sort((a, b) => a.slot.localeCompare(b.slot));
-  const faintedPokemon = hpByPokemon.filter((pokemon) => pokemon.fainted);
+  const initiallyFaintedSlots = new Set(
+    initialState?.pokemon.filter((pokemon) => pokemon.fainted).map((pokemon) => pokemon.slot) ?? []
+  );
+  const faintedPokemon = hpByPokemon.filter(
+    (pokemon) => pokemon.fainted && !initiallyFaintedSlots.has(pokemon.slot)
+  );
+  const stateChanges = compareHydratedStates(initialState, finalState);
+  const actionOutcomes = parseActionOutcomes(log, initialState, finalState);
 
   return {
     hpByPokemon,
@@ -525,8 +610,221 @@ function summarizeSingleTurnOutcome(
     movesBySide: {
       p1: moveEvents.filter((event) => event.side === "p1"),
       p2: moveEvents.filter((event) => event.side === "p2")
-    }
+    },
+    ...stateChanges,
+    volatileChanges: parseVolatileChanges(log),
+    actionOutcomes,
+    conditionChanges: parseConditionChanges(log),
+    forcedSwitches: parseForcedSwitches(log),
+    criticalHitsBySide: countLogTargetsBySide(log, "|-crit|"),
+    missesBySide: countMissesBySide(actionOutcomes)
   };
+}
+
+function compareHydratedStates(
+  initialState: HydratedBattleSummary | undefined,
+  finalState: HydratedBattleSummary | undefined
+): Pick<SingleTurnOutcomeSummary, "statusChanges" | "boostChanges" | "itemChanges"> {
+  const statusChanges: ShowdownStatusChange[] = [];
+  const boostChanges: ShowdownBoostChange[] = [];
+  const itemChanges: ShowdownItemChange[] = [];
+  if (!initialState || !finalState) return { statusChanges, boostChanges, itemChanges };
+
+  const initialBySlot = new Map(initialState.pokemon.map((pokemon) => [pokemon.slot, pokemon]));
+  for (const after of finalState.pokemon) {
+    const before = initialBySlot.get(after.slot);
+    if (!before || before.pokemon !== after.pokemon) continue;
+
+    if (before.status !== after.status) {
+      statusChanges.push({
+        side: after.side,
+        slot: after.slot,
+        pokemon: after.pokemon,
+        before: before.status,
+        after: after.status
+      });
+    }
+
+    for (const stat of Object.keys(after.boosts) as Array<keyof typeof after.boosts>) {
+      if (before.boosts[stat] === after.boosts[stat]) continue;
+      boostChanges.push({
+        side: after.side,
+        slot: after.slot,
+        pokemon: after.pokemon,
+        stat,
+        before: before.boosts[stat],
+        after: after.boosts[stat],
+        delta: after.boosts[stat] - before.boosts[stat]
+      });
+    }
+
+    if (before.itemId !== after.itemId) {
+      itemChanges.push({
+        side: after.side,
+        slot: after.slot,
+        pokemon: after.pokemon,
+        before: before.itemId,
+        after: after.itemId
+      });
+    }
+  }
+
+  return { statusChanges, boostChanges, itemChanges };
+}
+
+function parseActionOutcomes(
+  log: string[],
+  initialState: HydratedBattleSummary | undefined,
+  finalState: HydratedBattleSummary | undefined
+): ShowdownActionOutcome[] {
+  const outcomes = new Map<string, ShowdownActionOutcome>();
+  const finalBySlot = new Map(finalState?.pokemon.map((pokemon) => [pokemon.slot, pokemon]) ?? []);
+
+  for (const pokemon of initialState?.pokemon ?? []) {
+    if (!/^p[12][ab]$/.test(pokemon.slot) || pokemon.fainted) continue;
+    outcomes.set(pokemon.slot, {
+      side: pokemon.side,
+      slot: pokemon.slot,
+      pokemon: pokemon.pokemon,
+      outcome: "not-observed"
+    });
+  }
+
+  let currentTurnStarted = false;
+  let lastMoverSlot = "";
+  for (const line of log) {
+    if (line.startsWith("|turn|")) {
+      currentTurnStarted = true;
+      continue;
+    }
+    if (line.startsWith("|move|")) {
+      const [, , label, move] = line.split("|");
+      const parsed = parsePokemonLabel(label);
+      lastMoverSlot = parsed.slot;
+      outcomes.set(parsed.slot, { ...parsed, outcome: "moved", move });
+      continue;
+    }
+    if (line.startsWith("|cant|")) {
+      const [, , label, reason] = line.split("|");
+      const parsed = parsePokemonLabel(label);
+      outcomes.set(parsed.slot, { ...parsed, outcome: "denied", reason: toCanonicalId(reason) });
+      continue;
+    }
+    if (line.startsWith("|-miss|")) {
+      const [, , label] = line.split("|");
+      const parsed = parsePokemonLabel(label);
+      const existing = outcomes.get(parsed.slot);
+      outcomes.set(parsed.slot, { ...parsed, outcome: "missed", move: existing?.move });
+      continue;
+    }
+    if (line.startsWith("|-fail|") && lastMoverSlot) {
+      const existing = outcomes.get(lastMoverSlot);
+      if (existing) outcomes.set(lastMoverSlot, { ...existing, outcome: "failed" });
+      continue;
+    }
+    if (line.startsWith("|-immune|") && lastMoverSlot) {
+      const existing = outcomes.get(lastMoverSlot);
+      if (existing) outcomes.set(lastMoverSlot, { ...existing, outcome: "immune" });
+      continue;
+    }
+    if (currentTurnStarted && line.startsWith("|switch|")) {
+      const [, , label] = line.split("|");
+      const parsed = parsePokemonLabel(label);
+      outcomes.set(parsed.slot, { ...parsed, outcome: "switched" });
+    }
+  }
+
+  return [...outcomes.values()].map((outcome) => {
+    const final = finalBySlot.get(outcome.slot);
+    return outcome.outcome === "not-observed" && final?.fainted
+      ? { ...outcome, outcome: "fainted-before-action" }
+      : outcome;
+  });
+}
+
+function parseVolatileChanges(log: string[]): ShowdownVolatileChange[] {
+  return log.flatMap((line) => {
+    const change = line.startsWith("|-start|") ? "started" : line.startsWith("|-end|") ? "ended" : null;
+    if (!change) return [];
+    const [, , label, rawEffect] = line.split("|");
+    if (!label?.startsWith("p1") && !label?.startsWith("p2")) return [];
+    const parsed = parsePokemonLabel(label);
+    return [{ ...parsed, effectId: toCanonicalId(rawEffect), change }];
+  });
+}
+
+function parseConditionChanges(log: string[]): ShowdownConditionChange[] {
+  const changes: ShowdownConditionChange[] = [];
+  let lastMoveSide: PlayerSide | undefined;
+
+  for (const line of log) {
+    if (line.startsWith("|move|")) {
+      const [, , label] = line.split("|");
+      lastMoveSide = parsePokemonLabel(label).side;
+      continue;
+    }
+    if (line.startsWith("|-weather|")) {
+      const [, , rawCondition] = line.split("|");
+      changes.push({
+        scope: "field",
+        conditionId: toCanonicalId(rawCondition),
+        change: toCanonicalId(rawCondition) === "none" ? "ended" : "changed",
+        sourceSide: lastMoveSide
+      });
+      continue;
+    }
+    if (line.startsWith("|-fieldstart|") || line.startsWith("|-fieldend|")) {
+      const [, command, rawCondition] = line.split("|");
+      changes.push({
+        scope: "field",
+        conditionId: toCanonicalId(rawCondition.replace(/^move: /i, "")),
+        change: command === "-fieldstart" ? "started" : "ended",
+        sourceSide: lastMoveSide
+      });
+      continue;
+    }
+    if (line.startsWith("|-sidestart|") || line.startsWith("|-sideend|")) {
+      const [, command, rawSide, rawCondition] = line.split("|");
+      changes.push({
+        scope: "side",
+        side: rawSide.slice(0, 2) as PlayerSide,
+        conditionId: toCanonicalId(rawCondition.replace(/^move: /i, "")),
+        change: command === "-sidestart" ? "started" : "ended",
+        sourceSide: lastMoveSide
+      });
+    }
+  }
+
+  return changes;
+}
+
+function parseForcedSwitches(log: string[]): ShowdownForcedSwitch[] {
+  return log.flatMap((line) => {
+    if (!line.startsWith("|drag|")) return [];
+    const [, , label] = line.split("|");
+    return [parsePokemonLabel(label)];
+  });
+}
+
+function countLogTargetsBySide(log: string[], prefix: string): Record<PlayerSide, number> {
+  const counts = { p1: 0, p2: 0 };
+  for (const line of log) {
+    if (!line.startsWith(prefix)) continue;
+    const [, , label] = line.split("|");
+    counts[parsePokemonLabel(label).side] += 1;
+  }
+  return counts;
+}
+
+function countMissesBySide(outcomes: ShowdownActionOutcome[]): Record<PlayerSide, number> {
+  return {
+    p1: outcomes.filter((outcome) => outcome.side === "p1" && outcome.outcome === "missed").length,
+    p2: outcomes.filter((outcome) => outcome.side === "p2" && outcome.outcome === "missed").length
+  };
+}
+
+function toCanonicalId(value: string): string {
+  return PokemonShowdown.toID(value);
 }
 
 function sumDamageTakenBySide(damageEvents: ShowdownDamageEvent[], side: PlayerSide): number {
