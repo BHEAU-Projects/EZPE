@@ -7,6 +7,11 @@ import { replacementSubmissionSchema, turnReportSchema } from "../../session/tur
 import { observedActionSchema } from "../../session/turn-report.js";
 import { suggestTurnEffects } from "../../session/turn-effects.js";
 import { AdvicePresenter, presentPlayerMovePp } from "../../advisor/advice-presenter.js";
+import { generateLegalActions } from "../../advisor/legal-action-generator.js";
+import { pokemonDataService } from "../../data/pokemon-data-service.js";
+import type { BattleState, LegalAction, PlayerSide } from "../../domain/battle-state.js";
+
+type MoveLegalAction = Extract<LegalAction, { type: "move" }>;
 
 const rankRequestSchema = z
   .object({
@@ -19,6 +24,13 @@ const turnEffectRequestSchema = z.object({ actions: z.array(observedActionSchema
 
 export function registerSessionRoutes(app: FastifyInstance, session: BattleSession): void {
   app.get("/api/state", async () => statePayload(session));
+
+  app.get<{ Params: { moveId: string } }>("/api/move/:moveId", async (request, reply) => {
+    const state = session.getState();
+    const move = pokemonDataService.getMove(state.regulationId, request.params.moveId);
+    if (!move) return reply.code(404).send({ error: `Unknown move ${request.params.moveId}.` });
+    return move;
+  });
 
   app.post("/api/event", async (request, reply) => {
     const event = battleEventSchema.safeParse(request.body);
@@ -130,6 +142,7 @@ function resolutionPayload(
   return {
     ...resolution,
     playerMovePp: presentPlayerMovePp(resolution.state),
+    turnOptions: buildTurnInputOptions(resolution.state),
     advice: resolution.phase === "ready"
       ? rankPayload(session, top, maxOpponentPlans)
       : null
@@ -141,8 +154,66 @@ function statePayload(session: BattleSession) {
   return {
     state,
     playerMovePp: presentPlayerMovePp(state),
+    turnOptions: buildTurnInputOptions(state),
     replacementRequests: session.getReplacementRequests()
   };
+}
+
+function buildTurnInputOptions(state: BattleState) {
+  const legalActions = (["p1", "p2"] as const).flatMap((side) => {
+    try {
+      return generateLegalActions(state, side);
+    } catch {
+      return [];
+    }
+  });
+
+  return (["p1", "p2"] as const).flatMap((side) =>
+    state.teams[side].active.map((pokemon) => {
+      const slotActions = legalActions.filter((action) => action.activeSlot === pokemon.slot);
+      const moveGroups = new Map<string, {
+        key: string;
+        moveId: string;
+        moveName: string;
+        specialMechanic?: LegalAction["specialMechanic"];
+        targets: MoveLegalAction["targetSlot"][];
+      }>();
+
+      for (const action of slotActions) {
+        if (action.type !== "move") continue;
+        const mechanic = action.specialMechanic?.kind ?? "standard";
+        const key = `${action.moveId}:${mechanic}`;
+        const existing = moveGroups.get(key);
+        if (existing) {
+          if (!existing.targets.includes(action.targetSlot)) existing.targets.push(action.targetSlot);
+          continue;
+        }
+        moveGroups.set(key, {
+          key,
+          moveId: action.moveId,
+          moveName: pokemonDataService.getMove(state.regulationId, action.moveId)?.name ?? action.moveId,
+          ...(action.specialMechanic ? { specialMechanic: action.specialMechanic } : {}),
+          targets: [action.targetSlot]
+        });
+      }
+
+      return {
+        side,
+        slot: pokemon.slot,
+        speciesId: pokemon.set.speciesId,
+        displayName: pokemon.set.displayName ?? pokemon.set.speciesId,
+        fainted: pokemon.hp.unit === "exact" ? pokemon.hp.current === 0 : pokemon.hp.percent === 0,
+        moves: [...moveGroups.values()],
+        switches: slotActions.flatMap((action) => action.type === "switch" ? [{
+          benchSlot: action.benchSlot,
+          speciesId: action.speciesId,
+          displayName: state.teams[side as PlayerSide].bench.find(
+            (pokemon) => pokemon.benchSlot === action.benchSlot
+          )?.set.displayName ?? action.speciesId
+        }] : [])
+      };
+    })
+  );
 }
 
 function formatError(error: unknown): string {

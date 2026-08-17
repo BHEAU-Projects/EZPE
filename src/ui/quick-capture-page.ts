@@ -3,529 +3,178 @@ export const quickCapturePage = String.raw`<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>EZPE Quick Capture</title>
+  <title>EZPE Battle</title>
   <style>
-    :root {
-      color-scheme: light;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      color: #17202a;
-      background: #edf1f4;
-      font-synthesis: none;
-    }
+    :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #16212b; background: #edf1f4; font-synthesis: none; }
     * { box-sizing: border-box; }
     body { margin: 0; min-width: 320px; background: #edf1f4; }
     button, input, select { font: inherit; }
-    button, input, select { min-height: 40px; }
-    button { border: 1px solid #aeb8c2; background: #ffffff; color: #17202a; cursor: pointer; border-radius: 6px; font-weight: 650; padding: 0 13px; }
-    button:hover { background: #f4f7f9; border-color: #7d8995; }
-    button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #9dc7ec; outline-offset: 1px; }
-    button.primary { background: #1565a7; border-color: #1565a7; color: #ffffff; }
-    button.primary:hover { background: #0f548d; }
-    button.danger { color: #a12622; border-color: #d8a3a1; }
-    button:disabled { cursor: wait; opacity: 0.6; }
-    input, select { width: 100%; border: 1px solid #b9c3cc; border-radius: 5px; background: #ffffff; color: #17202a; padding: 7px 9px; }
-    label { color: #4d5a66; font-size: 12px; font-weight: 700; }
-    .app-header { min-height: 64px; background: #17202a; color: #ffffff; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 12px 22px; border-bottom: 4px solid #d64d3f; }
-    .brand { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
-    .brand h1 { margin: 0; font-size: 22px; line-height: 1; letter-spacing: 0; }
-    .brand span { color: #c8d1d9; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .header-actions { display: flex; align-items: center; gap: 10px; }
-    .connection { font-size: 12px; color: #bde4c4; white-space: nowrap; }
-    .setup-link { color: #ffffff; font-size: 12px; font-weight: 750; text-decoration: none; border: 1px solid #63717d; border-radius: 5px; padding: 7px 10px; }
-    .setup-link:hover { background: #293743; }
-    main { width: min(1480px, 100%); margin: 0 auto; padding: 16px; }
-    .topbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 14px; margin-bottom: 14px; }
-    .battle-meta { font-size: 14px; font-weight: 700; }
-    .turn-control { display: grid; grid-template-columns: 84px 88px; gap: 8px; align-items: end; }
-    .battle-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
-    .side-section { min-width: 0; }
-    .section-heading { display: flex; align-items: center; justify-content: space-between; min-height: 38px; padding: 0 2px; border-bottom: 2px solid #87939d; }
-    .section-heading h2 { margin: 0; font-size: 15px; letter-spacing: 0; }
-    .side-label { font-size: 11px; color: #5c6872; text-transform: uppercase; font-weight: 800; }
-    .pokemon-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding-top: 10px; }
-    .pokemon-card { min-width: 0; background: #ffffff; border: 1px solid #c7d0d8; border-top: 4px solid #1565a7; border-radius: 7px; padding: 12px; }
-    .opponent .pokemon-card { border-top-color: #d64d3f; }
-    .pokemon-title { display: flex; align-items: start; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
-    .pokemon-title h3 { margin: 0; font-size: 16px; letter-spacing: 0; overflow-wrap: anywhere; }
-    .slot { flex: 0 0 auto; color: #65717c; font-size: 11px; font-weight: 800; text-transform: uppercase; }
-    .control-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; margin-top: 8px; align-items: end; }
-    .control-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 7px; margin-top: 8px; }
-    .field { display: grid; gap: 4px; min-width: 0; }
-    .hp-caption { font-size: 12px; color: #52606c; font-weight: 700; }
-    .chips { display: flex; flex-wrap: wrap; gap: 5px; min-height: 25px; margin-top: 9px; }
-    .chip { display: inline-flex; align-items: center; min-height: 25px; max-width: 100%; border: 1px solid #bdc7cf; border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 750; overflow-wrap: anywhere; }
-    .chip.observed { background: #e5f4e8; border-color: #8dc69a; color: #215f2f; }
-    .chip.assumed { background: #fff5d8; border-color: #d7bd6a; color: #6a5312; }
-    .move-list { display: grid; gap: 5px; margin-top: 10px; padding-top: 9px; border-top: 1px solid #dce2e7; }
-    .move-line { min-height: 30px; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #29343e; font-size: 12px; font-weight: 750; }
-    .pp-value { flex: 0 0 auto; min-width: 62px; text-align: center; background: #eaf2f8; border: 1px solid #a9bfd0; border-radius: 999px; padding: 3px 8px; color: #224b69; }
-    details { margin-top: 10px; border-top: 1px solid #dce2e7; padding-top: 8px; }
-    summary { color: #46525d; cursor: pointer; font-size: 12px; font-weight: 800; }
-    .advanced-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-top: 8px; }
-    .boost-row { display: grid; grid-template-columns: minmax(0, 1fr) 72px auto; gap: 7px; margin-top: 8px; align-items: end; }
-    .conditions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; padding-top: 10px; }
-    .field-band { margin-top: 14px; padding: 13px 2px; border-top: 2px solid #87939d; border-bottom: 1px solid #b8c2cb; }
-    .field-grid { display: grid; grid-template-columns: repeat(7, minmax(86px, 1fr)) auto; gap: 8px; align-items: end; }
-    .advice-section { margin-top: 15px; }
-    .rank-controls { display: grid; grid-template-columns: 90px 110px 130px; gap: 8px; align-items: end; }
+    button { min-height: 38px; border: 1px solid #aeb8c2; border-radius: 6px; background: #fff; color: #16212b; cursor: pointer; padding: 6px 11px; font-weight: 750; }
+    button:hover { border-color: #64727e; background: #f4f7f9; }
+    button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 3px solid #85b9e2; outline-offset: 1px; }
+    button.selected { border-color: #17679f; background: #dceefb; color: #104c76; }
+    button.primary { background: #19713b; border-color: #19713b; color: #fff; }
+    button.primary:hover { background: #125c2f; }
+    button.danger { color: #a22d29; border-color: #daa8a5; }
+    button:disabled { opacity: .55; cursor: wait; }
+    input, select { min-height: 38px; width: 100%; border: 1px solid #b8c2cb; border-radius: 5px; background: #fff; color: #16212b; padding: 6px 8px; }
+    label { color: #4d5a65; font-size: 12px; font-weight: 750; }
+    .app-header { min-height: 62px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 20px; background: #17232d; border-bottom: 4px solid #d35045; color: #fff; }
+    .brand { display: flex; align-items: baseline; gap: 11px; min-width: 0; }
+    .brand h1 { margin: 0; font-size: 21px; letter-spacing: 0; }
+    .brand span { color: #c7d0d8; font-size: 13px; }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .setup-link { color: #fff; text-decoration: none; border: 1px solid #64727e; border-radius: 5px; padding: 7px 10px; font-size: 12px; font-weight: 750; }
+    .connection { color: #bce5c7; font-size: 12px; }
+    main { width: min(1440px, 100%); margin: 0 auto; padding: 14px 16px 28px; }
+    .battle-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 46px; border-bottom: 2px solid #86939e; }
+    .battle-meta { font-size: 14px; font-weight: 800; }
+    .turn-badge { color: #fff; background: #294454; border-radius: 5px; padding: 6px 10px; font-size: 13px; font-weight: 800; }
+    .condition-strip { display: flex; flex-wrap: wrap; gap: 6px; min-height: 36px; padding: 8px 0; }
+    .tag { display: inline-flex; align-items: center; min-height: 25px; border: 1px solid #bdc7cf; border-radius: 999px; background: #fff; padding: 2px 8px; color: #45525d; font-size: 11px; font-weight: 750; }
+    .tag.player { background: #e4f1fb; border-color: #9fc5df; color: #145078; }
+    .tag.opponent { background: #fbe9e7; border-color: #dfa8a3; color: #8b332c; }
+    .tag.effect { background: #fff4cf; border-color: #d4b95c; color: #68500b; }
+    .capture-section { padding-top: 6px; }
+    .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 40px; border-bottom: 1px solid #bac4cc; }
+    .section-heading h2 { margin: 0; font-size: 16px; letter-spacing: 0; }
+    .side-label { color: #60707c; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+    .turn-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; padding-top: 10px; }
+    .side-band { min-width: 0; }
+    .side-band.opponent .side-heading { border-color: #d35045; }
+    .side-heading { display: flex; justify-content: space-between; align-items: center; min-height: 34px; border-bottom: 3px solid #2377ae; }
+    .side-heading h3 { margin: 0; font-size: 14px; letter-spacing: 0; }
+    .action-list { display: grid; gap: 8px; padding-top: 8px; }
+    .action-panel { min-width: 0; border: 1px solid #c5ced5; border-radius: 7px; background: #fff; padding: 10px; }
+    .action-panel.fainted { opacity: .6; }
+    .pokemon-line { display: grid; grid-template-columns: minmax(0, 1fr) minmax(90px, 130px); gap: 10px; align-items: end; }
+    .pokemon-name { min-width: 0; }
+    .pokemon-name strong { display: block; overflow-wrap: anywhere; font-size: 15px; }
+    .pokemon-name span { color: #65727d; font-size: 11px; font-weight: 750; text-transform: uppercase; }
+    .field { display: grid; gap: 3px; min-width: 0; }
+    .move-buttons, .target-buttons, .effect-buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 9px; }
+    .move-buttons button, .target-buttons button { min-width: 0; min-height: 42px; overflow-wrap: anywhere; }
+    .move-meta { display: block; color: #64717c; font-size: 10px; font-weight: 650; margin-top: 2px; }
+    .target-zone { margin-top: 8px; padding-top: 8px; border-top: 1px solid #dde3e7; }
+    .target-zone h4 { margin: 0; color: #52606b; font-size: 11px; text-transform: uppercase; letter-spacing: 0; }
+    .other-move { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; margin-top: 8px; }
+    .pp-list { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+    .pp { border: 1px solid #a8bfd0; border-radius: 999px; background: #eaf3f9; color: #234f6d; padding: 3px 7px; font-size: 10px; font-weight: 750; }
+    .effects-panel { margin-top: 12px; border-top: 2px solid #c5a543; border-bottom: 1px solid #d6c98f; padding: 8px 0 10px; }
+    .effects-panel[hidden] { display: none; }
+    .effect-buttons { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .effect-buttons button { background: #fffdf4; border-color: #cbbb7b; font-size: 12px; }
+    .effect-buttons button.selected { background: #fff0b7; border-color: #ad8a18; color: #5d4700; }
+    .turn-submit { display: flex; justify-content: flex-end; align-items: center; gap: 10px; min-height: 58px; border-bottom: 2px solid #86939e; }
+    .turn-submit button { min-width: 160px; min-height: 44px; }
+    .advanced-settings { margin: 8px 0 0; }
+    details { border-top: 1px solid #c4cdd4; padding-top: 8px; }
+    summary { cursor: pointer; color: #46545f; font-size: 12px; font-weight: 800; }
+    .settings-grid { display: grid; grid-template-columns: repeat(2, minmax(120px, 180px)) auto; gap: 8px; align-items: end; margin-top: 8px; }
+    .advice-section { margin-top: 12px; }
     .advice-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding-top: 10px; }
-    .advice-card { background: #ffffff; border: 1px solid #c7d0d8; border-left: 5px solid #2d8a49; border-radius: 6px; padding: 12px; min-width: 0; }
-    .advice-card h3 { margin: 0 0 8px; font-size: 14px; letter-spacing: 0; overflow-wrap: anywhere; }
-    .score { color: #245b35; font-weight: 800; font-size: 13px; }
-    .action-line { padding: 8px 0; border-top: 1px solid #dce2e7; }
-    .action-name { color: #17202a; font-size: 13px; font-weight: 800; overflow-wrap: anywhere; }
-    .damage-line { color: #4f5b66; font-size: 12px; line-height: 1.45; margin-top: 3px; }
-    .plan-worst-case { margin-top: 8px; padding-top: 9px; border-top: 2px solid #d28a52; }
-    .plan-worst-case h4 { margin: 0 0 3px; color: #8a3f18; font-size: 12px; letter-spacing: 0; text-transform: uppercase; }
-    .plan-worst-case .action-line { border-top-color: #ead4bb; }
-    .plan-worst-case .score { color: #7a421f; }
-    .status-line { min-height: 22px; color: #52606c; font-size: 12px; padding-top: 7px; }
-    .status-line.error { color: #a12622; font-weight: 700; }
-    @media (max-width: 1280px) {
-      .pokemon-list { grid-template-columns: 1fr; }
-    }
-    @media (max-width: 980px) {
-      .battle-grid { grid-template-columns: 1fr; }
-      .field-grid { grid-template-columns: repeat(4, minmax(80px, 1fr)); }
-      .advice-list { grid-template-columns: 1fr; }
-    }
-    @media (max-width: 620px) {
-      .app-header { padding: 11px 13px; }
-      .brand span { display: none; }
-      main { padding: 10px; }
-      .topbar { grid-template-columns: 1fr; }
-      .pokemon-list { grid-template-columns: 1fr; }
-      .field-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .rank-controls { grid-template-columns: 1fr 1fr; }
-      .rank-controls button { grid-column: 1 / -1; }
-    }
+    .advice-card { min-width: 0; border: 1px solid #c6cfd6; border-left: 5px solid #25804a; border-radius: 6px; background: #fff; padding: 11px; }
+    .advice-card h3 { margin: 0 0 7px; font-size: 14px; letter-spacing: 0; }
+    .score { color: #245b36; font-size: 12px; font-weight: 800; line-height: 1.45; }
+    .action-line { padding: 7px 0; border-top: 1px solid #dde3e7; }
+    .action-name { overflow-wrap: anywhere; font-size: 13px; font-weight: 800; }
+    .damage-line { margin-top: 3px; color: #4f5c67; font-size: 11px; line-height: 1.45; }
+    .advice-tags { display: flex; flex-wrap: wrap; gap: 4px; margin: 7px 0; }
+    .plan-worst-case { margin-top: 7px; border-top: 2px solid #d28a52; padding-top: 7px; }
+    .plan-worst-case h4 { margin: 0 0 3px; color: #883e18; font-size: 11px; text-transform: uppercase; letter-spacing: 0; }
+    .plan-worst-case .score { color: #7b421f; }
+    .corrections { margin-top: 16px; }
+    .correction-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+    .correction-panel { border: 1px solid #c7d0d7; border-radius: 6px; background: #fff; padding: 9px; }
+    .correction-panel h3 { margin: 0 0 7px; font-size: 13px; }
+    .compact-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; margin-top: 6px; align-items: end; }
+    .status-line { min-height: 24px; padding-top: 7px; color: #52606b; font-size: 12px; }
+    .status-line.error { color: #a22d29; font-weight: 750; }
+    .overlay { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 18px; background: rgba(18, 30, 39, .72); }
+    .overlay[hidden] { display: none; }
+    .dialog { width: min(620px, 100%); max-height: min(720px, 90vh); overflow: auto; border: 1px solid #71808b; border-radius: 7px; background: #fff; box-shadow: 0 20px 70px rgba(0,0,0,.3); padding: 16px; }
+    .dialog h2 { margin: 0 0 10px; font-size: 18px; }
+    .replacement-block { border-top: 1px solid #d7dee3; padding-top: 10px; margin-top: 10px; }
+    .replacement-block h3 { margin: 0 0 7px; font-size: 13px; }
+    .replacement-buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+    @media (max-width: 1020px) { .turn-grid { grid-template-columns: 1fr; } .advice-list { grid-template-columns: 1fr; } .effect-buttons { grid-template-columns: repeat(2, minmax(0, 1fr)); } .correction-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 620px) { .app-header { padding: 10px 12px; } .brand span, .connection { display: none; } main { padding: 10px; } .pokemon-line { grid-template-columns: minmax(0, 1fr) 105px; } .move-buttons, .target-buttons, .effect-buttons, .replacement-buttons { grid-template-columns: 1fr 1fr; } .settings-grid, .correction-grid { grid-template-columns: 1fr; } .turn-submit { position: sticky; bottom: 0; z-index: 5; background: #edf1f4; } }
   </style>
 </head>
 <body>
-  <header class="app-header">
-    <div class="brand"><h1>EZPE</h1><span>Quick Capture</span></div>
-    <div class="header-actions"><a class="setup-link" href="/setup/player">Edit teams</a><div class="connection" id="connection">Local session</div></div>
-  </header>
+  <header class="app-header"><div class="brand"><h1>EZPE</h1><span>Live Battle</span></div><div class="header-actions"><a class="setup-link" href="/setup/player">Teams</a><div class="connection" id="connection">Local session</div></div></header>
   <main>
-    <section class="topbar">
-      <div class="battle-meta" id="battle-meta">Loading battle state...</div>
-      <div class="turn-control">
-        <div class="field"><label for="turn">Turn</label><input id="turn" type="number" min="1" max="999"></div>
-        <button id="set-turn">Set turn</button>
-      </div>
-    </section>
-    <div class="battle-grid" id="battle-grid"></div>
-    <section class="field-band">
-      <div class="section-heading"><h2>Field</h2><span class="side-label">Current conditions</span></div>
-      <div class="field-grid">
-        <div class="field"><label for="weather">Weather</label><select id="weather"><option value="">None</option><option>rain</option><option>sun</option><option>sandstorm</option><option>snow</option></select></div>
-        <div class="field"><label for="weather-turns">Weather turns</label><input id="weather-turns" type="number" min="0" max="8"></div>
-        <div class="field"><label for="terrain">Terrain</label><select id="terrain"><option value="">None</option><option>electric</option><option>grassy</option><option>misty</option><option>psychic</option></select></div>
-        <div class="field"><label for="terrain-turns">Terrain turns</label><input id="terrain-turns" type="number" min="0" max="8"></div>
-        <div class="field"><label for="trick-room">Trick Room</label><input id="trick-room" type="number" min="0" max="8"></div>
-        <div class="field"><label for="gravity">Gravity</label><input id="gravity" type="number" min="0" max="8"></div>
-        <div class="field"><label for="field-spacer">State</label><input id="field-spacer" value="Live" disabled></div>
-        <button id="apply-field">Apply field</button>
-      </div>
-    </section>
-    <section class="advice-section">
-      <div class="section-heading">
-        <h2>Ranked Advice</h2>
-        <div class="rank-controls">
-          <div class="field"><label for="top-results">Results</label><select id="top-results"><option>1</option><option selected>3</option><option>5</option></select></div>
-          <div class="field"><label for="responses">Responses</label><select id="responses"><option>1</option><option selected>4</option><option>8</option><option>12</option></select></div>
-          <button class="primary" id="analyze">Analyze turn</button>
-        </div>
-      </div>
-      <div class="advice-list" id="advice-list"></div>
-      <div class="status-line" id="status-line" aria-live="polite"></div>
-    </section>
+    <section class="battle-bar"><div class="battle-meta" id="battle-meta">Loading...</div><div class="turn-badge" id="turn-badge">Turn</div></section>
+    <div class="condition-strip" id="condition-strip"></div>
+    <details class="advanced-settings"><summary>Advanced settings</summary><div class="settings-grid"><div class="field"><label for="recommendations" title="Controls only how many ranked plans are displayed.">Recommendations</label><select id="recommendations"><option>1</option><option>3</option><option>5</option></select></div><div class="field"><label for="opponent-scenarios" title="Controls how many opponent action plans affect expected and worst-case ranking.">Opponent scenarios</label><select id="opponent-scenarios"><option>1</option><option>4</option><option>8</option><option>12</option></select></div><button id="refresh-advice">Refresh advice</button></div></details>
+    <section class="capture-section"><div class="section-heading"><h2>Turn Report</h2><span class="side-label" id="draft-count">0 actions</span></div><div class="turn-grid" id="turn-grid"></div><section class="effects-panel" id="effects-panel" hidden><div class="section-heading"><h2>Observed Effects</h2><span class="side-label">Confirmed outcomes</span></div><div class="effect-buttons" id="effect-buttons"></div></section><div class="turn-submit"><button class="primary" id="end-turn">End Turn</button></div></section>
+    <section class="advice-section"><div class="section-heading"><h2>Ranked Advice</h2><span class="side-label" id="rank-time"></span></div><div class="advice-list" id="advice-list"></div></section>
+    <details class="corrections"><summary>Manual corrections</summary><div class="correction-grid" id="correction-grid"></div></details>
+    <div class="status-line" id="status-line" aria-live="polite"></div>
   </main>
+  <div class="overlay" id="replacement-overlay" hidden><section class="dialog" role="dialog" aria-modal="true" aria-labelledby="replacement-title"><h2 id="replacement-title">Choose replacements</h2><div id="replacement-content"></div></section></div>
+  <datalist id="move-options"></datalist>
   <script>
-    var battleState = null;
-    var playerMovePp = {};
+    var battleState = null, playerMovePp = {}, turnOptions = [], moveCatalog = [], draftActions = {}, hpDraft = {}, effectSuggestions = [], selectedEffects = {}, effectRequestId = 0, adviceRequestId = 0, replacementRequests = [], replacementSelections = {}, busy = false;
     var statuses = ["healthy", "brn", "frz", "par", "psn", "slp", "tox"];
     var boostStats = ["atk", "def", "spa", "spd", "spe", "accuracy", "evasion"];
-
-    function element(tag, className, text) {
-      var node = document.createElement(tag);
-      if (className) node.className = className;
-      if (text !== undefined) node.textContent = text;
-      return node;
-    }
-
-    function field(labelText, control) {
-      var wrapper = element("div", "field");
-      var label = element("label", "", labelText);
-      label.htmlFor = control.id;
-      wrapper.append(label, control);
-      return wrapper;
-    }
-
-    function input(type, value, id) {
-      var control = document.createElement("input");
-      control.type = type;
-      control.value = value === undefined || value === null ? "" : String(value);
-      control.id = id;
-      return control;
-    }
-
-    function select(values, selected, id) {
-      var control = document.createElement("select");
-      control.id = id;
-      values.forEach(function(value) {
-        var option = document.createElement("option");
-        option.value = value;
-        option.textContent = value;
-        option.selected = value === selected;
-        control.appendChild(option);
-      });
-      return control;
-    }
-
-    function button(text, handler, className) {
-      var control = element("button", className || "", text);
-      control.type = "button";
-      control.addEventListener("click", handler);
-      return control;
-    }
-
-    async function api(path, options) {
-      var response = await fetch(path, Object.assign({
-        headers: { "content-type": "application/json" }
-      }, options || {}));
-      var body = await response.json();
-      if (!response.ok) throw new Error(body.error || "Request failed.");
-      return body;
-    }
-
-    async function applyEvent(event) {
-      setStatus("Updating...");
-      try {
-        var body = await api("/api/event", { method: "POST", body: JSON.stringify(event) });
-        battleState = body.state;
-        playerMovePp = body.playerMovePp;
-        render();
-        setStatus("Updated.");
-      } catch (error) {
-        setStatus(error.message, true);
-      }
-    }
-
-    function setStatus(message, isError) {
-      var node = document.getElementById("status-line");
-      node.textContent = message;
-      node.className = "status-line" + (isError ? " error" : "");
-    }
-
-    function render() {
-      document.getElementById("battle-meta").textContent =
-        battleState.regulationId + " | advising " + battleState.playerSide;
-      document.getElementById("turn").value = battleState.turnNumber;
-      document.getElementById("weather").value = battleState.field.weather || "";
-      document.getElementById("weather-turns").value = battleState.field.weatherTurnsRemaining;
-      document.getElementById("terrain").value = battleState.field.terrain || "";
-      document.getElementById("terrain-turns").value = battleState.field.terrainTurnsRemaining;
-      document.getElementById("trick-room").value = battleState.field.trickRoomTurnsRemaining;
-      document.getElementById("gravity").value = battleState.field.gravityTurnsRemaining;
-
-      var grid = document.getElementById("battle-grid");
-      grid.replaceChildren();
-      [battleState.playerSide, battleState.playerSide === "p1" ? "p2" : "p1"].forEach(function(side) {
-        grid.appendChild(renderSide(side));
-      });
-    }
-
-    function renderSide(side) {
-      var isOpponent = side !== battleState.playerSide;
-      var section = element("section", "side-section" + (isOpponent ? " opponent" : ""));
-      var heading = element("div", "section-heading");
-      heading.append(
-        element("h2", "", isOpponent ? "Opponent" : "Your side"),
-        element("span", "side-label", side)
-      );
-      var list = element("div", "pokemon-list");
-      battleState.teams[side].active.forEach(function(pokemon) {
-        list.appendChild(renderPokemon(pokemon, side, isOpponent));
-      });
-      section.append(heading, renderPreviewRoster(side), list, renderSideConditions(side));
-      return section;
-    }
-
-    function renderPreviewRoster(side) {
-      var wrapper = element("div", "chips");
-      var roster = battleState.teams[side].previewRoster || [];
-      roster.forEach(function(set) {
-        var gender = set.gender ? " (" + set.gender + ")" : "";
-        wrapper.appendChild(element("span", "chip " + (side === battleState.playerSide ? "observed" : "assumed"), (set.displayName || set.speciesId) + gender));
-      });
-      return wrapper;
-    }
-
-    function renderPokemon(pokemon, side, isOpponent) {
-      var card = element("article", "pokemon-card");
-      var title = element("div", "pokemon-title");
-      title.append(
-        element("h3", "", pokemon.set.displayName || pokemon.set.speciesId),
-        element("span", "slot", pokemon.slot + (pokemon.set.gender ? " / " + pokemon.set.gender : ""))
-      );
-      card.appendChild(title);
-
-      var hpValue = pokemon.hp.unit === "exact" ? pokemon.hp.current : pokemon.hp.percent;
-      var hpInput = input("number", hpValue, pokemon.slot + "-hp");
-      hpInput.min = "0";
-      hpInput.max = pokemon.hp.unit === "exact" ? String(pokemon.hp.max) : "100";
-      var hpRow = element("div", "control-row");
-      hpRow.append(
-        field(pokemon.hp.unit === "exact" ? "HP / " + pokemon.hp.max : "HP percent", hpInput),
-        button("Update", function() {
-          var numeric = Number(hpInput.value);
-          applyEvent({
-            type: "damage-observed",
-            slot: pokemon.slot,
-            remainingHp: pokemon.hp.unit === "exact"
-              ? { unit: "exact", current: numeric }
-              : { unit: "percent", percent: numeric }
-          });
-        })
-      );
-      card.appendChild(hpRow);
-
-      var statusSelect = select(statuses, pokemon.status, pokemon.slot + "-status");
-      statusSelect.addEventListener("change", function() {
-        applyEvent(statusSelect.value === "healthy"
-          ? { type: "status-cleared", slot: pokemon.slot }
-          : { type: "status-applied", slot: pokemon.slot, status: statusSelect.value });
-      });
-      var statusRow = element("div", "control-row");
-      statusRow.append(field("Status", statusSelect), button("Faint", function() {
-        applyEvent({ type: "faint-observed", slot: pokemon.slot });
-      }, "danger"));
-      card.appendChild(statusRow);
-
-      if (isOpponent) card.appendChild(renderMoveKnowledge(pokemon));
-      if (!isOpponent) card.appendChild(renderPlayerMoves(pokemon));
-      card.appendChild(renderAdvanced(pokemon, side));
-      return card;
-    }
-
-    function renderPlayerMoves(pokemon) {
-      var wrapper = element("div", "move-list");
-      (playerMovePp[pokemon.slot] || []).forEach(function(move) {
-        var row = element("div", "move-line");
-        row.append(
-          element("span", "", move.moveName),
-          element("span", "pp-value", move.currentPp + " / " + move.maxPp + " PP")
-        );
-        wrapper.appendChild(row);
-      });
-      return wrapper;
-    }
-
-    function renderMoveKnowledge(pokemon) {
-      var wrapper = element("div");
-      var moveInput = input("text", "", pokemon.slot + "-move");
-      moveInput.placeholder = "Observed move";
-      var submit = function() {
-        if (!moveInput.value.trim()) return;
-        applyEvent({ type: "move-observed", slot: pokemon.slot, moveId: canonicalId(moveInput.value) });
-      };
-      moveInput.addEventListener("keydown", function(event) {
-        if (event.key === "Enter") submit();
-      });
-      var row = element("div", "control-row");
-      row.append(field("Reveal move", moveInput), button("Add move", submit));
-      wrapper.appendChild(row);
-
-      var chips = element("div", "chips");
-      var knowledge = pokemon.set.moveKnowledge;
-      var observed = knowledge ? knowledge.observedMoveIds : [];
-      var assumed = knowledge ? knowledge.assumedMoveIds : pokemon.set.moveIds;
-      observed.forEach(function(moveId) { chips.appendChild(element("span", "chip observed", moveId)); });
-      assumed.forEach(function(moveId) { chips.appendChild(element("span", "chip assumed", moveId)); });
-      wrapper.appendChild(chips);
-      return wrapper;
-    }
-
-    function renderAdvanced(pokemon, side) {
-      var details = document.createElement("details");
-      details.appendChild(element("summary", "", "More battle data"));
-      var grid = element("div", "advanced-grid");
-      var itemInput = input("text", pokemon.currentItemId === undefined ? pokemon.set.itemId || "" : pokemon.currentItemId || "", pokemon.slot + "-item");
-      var abilityInput = input("text", pokemon.currentAbilityId || pokemon.set.abilityId, pokemon.slot + "-ability");
-      grid.append(
-        field("Current item", itemInput),
-        field("Current ability", abilityInput),
-        button("Apply item", function() {
-          applyEvent({ type: "item-changed", slot: pokemon.slot, itemId: itemInput.value.trim() ? canonicalId(itemInput.value) : null });
-        }),
-        button("Apply ability", function() {
-          applyEvent({ type: "ability-changed", slot: pokemon.slot, abilityId: canonicalId(abilityInput.value) });
-        })
-      );
-      details.appendChild(grid);
-
-      var statSelect = select(boostStats, "atk", pokemon.slot + "-boost-stat");
-      var stageInput = input("number", "0", pokemon.slot + "-boost-stage");
-      stageInput.min = "-6";
-      stageInput.max = "6";
-      var boostRow = element("div", "boost-row");
-      boostRow.append(field("Boost stat", statSelect), field("Stage", stageInput), button("Apply", function() {
-        var boosts = Object.assign({}, pokemon.boosts);
-        boosts[statSelect.value] = Number(stageInput.value);
-        applyEvent({ type: "boosts-changed", slot: pokemon.slot, boosts: boosts });
-      }));
-      details.appendChild(boostRow);
-
-      var bench = battleState.teams[side].bench.filter(function(member) { return !member.fainted; });
-      if (bench.length) {
-        var benchSelect = document.createElement("select");
-        benchSelect.id = pokemon.slot + "-bench";
-        bench.forEach(function(member) {
-          var option = document.createElement("option");
-          option.value = member.benchSlot;
-          option.textContent = (member.benchSlot + 1) + ". " + (member.set.displayName || member.set.speciesId);
-          benchSelect.appendChild(option);
-        });
-        var switchRow = element("div", "control-row");
-        switchRow.append(field("Switch in", benchSelect), button("Switch", function() {
-          applyEvent({ type: "switch-observed", side: side, activeSlot: pokemon.slot, benchSlot: Number(benchSelect.value) });
-        }));
-        details.appendChild(switchRow);
-      }
-      return details;
-    }
-
-    function renderSideConditions(side) {
-      var conditions = battleState.teams[side].sideConditions;
-      var wrapper = element("div", "conditions");
-      [
-        ["Tailwind", "tailwindTurns"],
-        ["Reflect", "reflectTurns"],
-        ["Light Screen", "lightScreenTurns"]
-      ].forEach(function(entry) {
-        var control = input("number", conditions[entry[1]], side + "-" + entry[1]);
-        control.min = "0";
-        control.max = "8";
-        control.addEventListener("change", function() {
-          var changes = {};
-          changes[entry[1]] = Number(control.value);
-          applyEvent({ type: "side-condition-changed", side: side, changes: changes });
-        });
-        wrapper.appendChild(field(entry[0], control));
-      });
-      return wrapper;
-    }
-
-    function canonicalId(value) {
-      return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
-    }
-
-    document.getElementById("set-turn").addEventListener("click", function() {
-      applyEvent({ type: "turn-started", turnNumber: Number(document.getElementById("turn").value) });
-    });
-
-    document.getElementById("apply-field").addEventListener("click", function() {
-      applyEvent({
-        type: "field-changed",
-        changes: {
-          weather: document.getElementById("weather").value || null,
-          weatherTurnsRemaining: Number(document.getElementById("weather-turns").value),
-          terrain: document.getElementById("terrain").value || null,
-          terrainTurnsRemaining: Number(document.getElementById("terrain-turns").value),
-          trickRoomTurnsRemaining: Number(document.getElementById("trick-room").value),
-          gravityTurnsRemaining: Number(document.getElementById("gravity").value)
-        }
-      });
-    });
-
-    document.getElementById("analyze").addEventListener("click", async function(event) {
-      var control = event.currentTarget;
-      control.disabled = true;
-      setStatus("Analyzing candidate turns...");
-      try {
-        var body = await api("/api/rank", {
-          method: "POST",
-          body: JSON.stringify({
-            top: Number(document.getElementById("top-results").value),
-            maxOpponentPlans: Number(document.getElementById("responses").value)
-          })
-        });
-        var list = document.getElementById("advice-list");
-        list.replaceChildren();
-        body.results.forEach(function(result) {
-          var card = element("article", "advice-card");
-          card.append(
-            element("h3", "", result.rank + ". Recommended turn"),
-            element("div", "score", "Plan score " + round(result.score) + " | expected " + round(result.expectedScore) + " | worst " + round(result.worstCaseScore))
-          );
-          result.actions.forEach(function(action) { card.appendChild(renderAdviceAction(action, false)); });
-          card.appendChild(renderWorstCase(result.worstCase));
-          list.appendChild(card);
-        });
-        setStatus(body.totalPlans + " plans ranked in " + Math.round(body.elapsedMs) + " ms.");
-      } catch (error) {
-        setStatus(error.message, true);
-      } finally {
-        control.disabled = false;
-      }
-    });
-
+    var settings = loadSettings();
+    function element(tag, className, text) { var node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; }
+    function button(text, handler, className) { var node = element("button", className || "", text); node.type = "button"; node.addEventListener("click", handler); return node; }
+    function input(type, value, id) { var node = document.createElement("input"); node.type = type; node.id = id; node.value = value === undefined || value === null ? "" : String(value); return node; }
+    function field(labelText, control) { var wrap = element("div", "field"), label = element("label", "", labelText); label.htmlFor = control.id; wrap.append(label, control); return wrap; }
+    function select(values, selected, id) { var node = document.createElement("select"); node.id = id; values.forEach(function(value) { var option = document.createElement("option"); option.value = value; option.textContent = value; option.selected = value === selected; node.appendChild(option); }); return node; }
+    function canonicalId(value) { return value.toLowerCase().replace(/[^a-z0-9]+/g, ""); }
+    function isFainted(pokemon) { return pokemon.hp.unit === "exact" ? pokemon.hp.current === 0 : pokemon.hp.percent === 0; }
+    function otherSide(side) { return side === "p1" ? "p2" : "p1"; }
+    function findPokemon(slot) { return battleState.teams[slot.slice(0, 2)].active.find(function(pokemon) { return pokemon.slot === slot; }); }
+    function formatTarget(target) { return target === "opponentSide" ? "both opponents" : target === "allySide" ? "ally side" : target === "self" ? "self" : target === "field" ? "field" : target; }
+    function displayPokemon(slot) { var pokemon = findPokemon(slot); return pokemon ? pokemon.set.displayName || pokemon.set.speciesId : formatTarget(slot); }
     function round(value) { return Math.round(value * 100) / 100; }
-
-    function renderAdviceAction(action, incoming) {
-      var row = element("div", "action-line");
-      if (action.type === "switch") {
-        row.appendChild(element("div", "action-name", action.actorSpecies + " switches to " + action.switchSpecies));
-        return row;
-      }
-
-      row.appendChild(element(
-        "div",
-        "action-name",
-        action.actorSpecies + " uses " + action.moveName + " on " + action.targetSpecies
-      ));
-      if (action.damage) {
-        row.appendChild(element(
-          "div",
-          "damage-line",
-          incoming
-            ? action.actionChancePercent === 0
-              ? "Cannot act: KO'd before its move"
-              : "Expected incoming " + oneDecimal(action.adjustedExpectedDamage) + " HP | critical max " + action.damage.criticalMaxDamage + " HP | can act " + oneDecimal(action.actionChancePercent) + "% | hit " + oneDecimal(action.damage.accuracyPercent) + "% | miss " + oneDecimal(action.damage.missChancePercent) + "% | crit " + oneDecimal(action.damage.criticalChancePercent) + "%"
-            : "Expected damage " + oneDecimal(action.damage.expectedDamagePercent) + "% | normal " + oneDecimal(action.damage.normalMinDamagePercent) + "-" + oneDecimal(action.damage.normalMaxDamagePercent) + "% | critical max " + oneDecimal(action.damage.criticalMaxDamagePercent) + "% | KO " + oneDecimal(action.damage.koChancePercent) + "% | hit " + oneDecimal(action.damage.accuracyPercent) + "% | miss " + oneDecimal(action.damage.missChancePercent) + "% | crit " + oneDecimal(action.damage.criticalChancePercent) + "%"
-        ));
-      } else {
-        row.appendChild(element("div", "damage-line", "No direct damage"));
-      }
-      return row;
-    }
-
-    function renderWorstCase(worstCase) {
-      var wrapper = element("section", "plan-worst-case");
-      wrapper.appendChild(element("h4", "", "Worst enemy response"));
-      worstCase.actions.forEach(function(action) {
-        wrapper.appendChild(renderAdviceAction(action, true));
-      });
-      wrapper.appendChild(element(
-        "div",
-        "score",
-        "Combined expected incoming " + oneDecimal(worstCase.totalExpectedDamage) + " HP | possible critical maximum " + worstCase.totalCriticalMaxDamage + " HP"
-      ));
-      return wrapper;
-    }
-
     function oneDecimal(value) { return Math.round(value * 10) / 10; }
-
-    api("/api/state").then(function(body) {
-      battleState = body.state;
-      playerMovePp = body.playerMovePp;
-      render();
-      setStatus("Ready.");
-    }).catch(function(error) {
-      document.getElementById("connection").textContent = "Disconnected";
-      setStatus(error.message, true);
-    });
+    async function api(path, options) { var response = await fetch(path, Object.assign({ headers: { "content-type": "application/json" } }, options || {})), body = await response.json(); if (!response.ok) throw new Error(body.error || "Request failed."); return body; }
+    function setStatus(message, isError) { var node = document.getElementById("status-line"); node.textContent = message; node.className = "status-line" + (isError ? " error" : ""); }
+    function setBusy(value) { busy = value; document.getElementById("end-turn").disabled = value; document.getElementById("refresh-advice").disabled = value; }
+    function loadSettings() { try { return Object.assign({ top: 3, maxOpponentPlans: 4 }, JSON.parse(localStorage.getItem("ezpe-ranking-settings") || "{}")); } catch (_) { return { top: 3, maxOpponentPlans: 4 }; } }
+    function saveSettings() { settings.top = Number(document.getElementById("recommendations").value); settings.maxOpponentPlans = Number(document.getElementById("opponent-scenarios").value); localStorage.setItem("ezpe-ranking-settings", JSON.stringify(settings)); }
+    function acceptState(body) { battleState = body.state; playerMovePp = body.playerMovePp || {}; turnOptions = body.turnOptions || []; replacementRequests = body.replacementRequests || []; initializeDraft(); render(); }
+    function initializeDraft() { draftActions = {}; selectedEffects = {}; effectSuggestions = []; hpDraft = {}; if (!battleState) return; ["p1", "p2"].forEach(function(side) { battleState.teams[side].active.forEach(function(pokemon) { hpDraft[pokemon.slot] = pokemon.hp.unit === "exact" ? pokemon.hp.current : pokemon.hp.percent; }); }); }
+    function render() { document.getElementById("battle-meta").textContent = battleState.regulationId + " | " + battleState.playerSide + " advisor"; document.getElementById("turn-badge").textContent = "Turn " + battleState.turnNumber; document.getElementById("recommendations").value = String(settings.top); document.getElementById("opponent-scenarios").value = String(settings.maxOpponentPlans); renderConditions(); renderTurnGrid(); renderEffects(); renderCorrections(); }
+    function renderConditions() { var strip = document.getElementById("condition-strip"); strip.replaceChildren(); var f = battleState.field; if (f.weather) strip.appendChild(element("span", "tag effect", f.weather + " " + f.weatherTurnsRemaining)); if (f.terrain) strip.appendChild(element("span", "tag effect", f.terrain + " terrain " + f.terrainTurnsRemaining)); [["Trick Room", f.trickRoomTurnsRemaining], ["Gravity", f.gravityTurnsRemaining], ["Magic Room", f.magicRoomTurnsRemaining], ["Wonder Room", f.wonderRoomTurnsRemaining]].forEach(function(entry) { if (entry[1]) strip.appendChild(element("span", "tag effect", entry[0] + " " + entry[1])); }); ["p1", "p2"].forEach(function(side) { var c = battleState.teams[side].sideConditions; [["Tailwind", c.tailwindTurns], ["Reflect", c.reflectTurns], ["Light Screen", c.lightScreenTurns], ["Aurora Veil", c.auroraVeilTurns]].forEach(function(entry) { if (entry[1]) strip.appendChild(element("span", "tag " + (side === battleState.playerSide ? "player" : "opponent"), side + " " + entry[0] + " " + entry[1])); }); }); if (!strip.children.length) strip.appendChild(element("span", "tag", "No field conditions")); }
+    function renderTurnGrid() { var grid = document.getElementById("turn-grid"); grid.replaceChildren(); [battleState.playerSide, otherSide(battleState.playerSide)].forEach(function(side) { grid.appendChild(renderTurnSide(side)); }); var required = turnOptions.filter(function(option) { return !option.fainted; }).length, completed = Object.values(draftActions).filter(isCompleteAction).length; document.getElementById("draft-count").textContent = completed + " / " + required + " actions"; }
+    function renderTurnSide(side) { var opponent = side !== battleState.playerSide, band = element("section", "side-band" + (opponent ? " opponent" : "")), heading = element("div", "side-heading"), list = element("div", "action-list"); heading.append(element("h3", "", opponent ? "Opponent" : "Your side"), element("span", "side-label", side)); turnOptions.filter(function(option) { return option.side === side; }).forEach(function(option) { list.appendChild(renderActionPanel(option, opponent)); }); band.append(heading, list); return band; }
+    function renderActionPanel(option, opponent) { var pokemon = findPokemon(option.slot), panel = element("article", "action-panel" + (option.fainted ? " fainted" : "")), top = element("div", "pokemon-line"), name = element("div", "pokemon-name"), hp = input("number", hpDraft[option.slot], option.slot + "-turn-hp"); name.append(element("strong", "", option.displayName), element("span", "", option.slot + " | " + pokemon.status)); hp.min = "0"; hp.max = pokemon.hp.unit === "exact" ? String(pokemon.hp.max) : "100"; hp.addEventListener("input", function() { hpDraft[option.slot] = Number(hp.value); }); top.append(name, field(pokemon.hp.unit === "exact" ? "HP / " + pokemon.hp.max : "HP %", hp)); panel.appendChild(top); if (option.fainted) { panel.appendChild(element("div", "damage-line", "Fainted")); return panel; } var moves = element("div", "move-buttons"); option.moves.forEach(function(move) { var label = move.moveName + (move.specialMechanic ? " + " + move.specialMechanic.kind : ""), control = button(label, function() { selectMove(option, move); }, isSelectedMove(option.slot, move) ? "selected" : ""), pp = getPp(option.slot, move.moveId); if (pp) control.appendChild(element("span", "move-meta", pp.currentPp + " / " + pp.maxPp + " PP")); moves.appendChild(control); }); option.switches.forEach(function(choice) { moves.appendChild(button("Switch: " + choice.displayName, function() { setDraftAction(option.slot, { type: "switch", activeSlot: option.slot, benchSlot: choice.benchSlot }); }, draftActions[option.slot]?.type === "switch" && draftActions[option.slot].benchSlot === choice.benchSlot ? "selected" : "")); }); moves.appendChild(button("Did not act", function() { setDraftAction(option.slot, { type: "no-action", activeSlot: option.slot, reason: "other" }); }, draftActions[option.slot]?.type === "no-action" ? "selected" : "")); panel.appendChild(moves); var selected = draftActions[option.slot]; if (selected && selected.type === "move" && selected.targets.length > 1) panel.appendChild(renderTargets(option.slot, selected)); if (opponent) panel.appendChild(renderOtherMove(option)); if (!opponent) panel.appendChild(renderPpList(option.slot)); return panel; }
+    function selectMove(option, move) { var targets = move.targets.slice(); draftActions[option.slot] = { type: "move", activeSlot: option.slot, moveId: move.moveId, targets: targets, targetSlot: targets.length === 1 ? targets[0] : null, specialMechanic: move.specialMechanic }; renderTurnGrid(); refreshEffectSuggestions(); }
+    function setDraftAction(slot, action) { draftActions[slot] = action; renderTurnGrid(); refreshEffectSuggestions(); }
+    function isSelectedMove(slot, move) { var selected = draftActions[slot]; return selected && selected.type === "move" && selected.moveId === move.moveId && JSON.stringify(selected.specialMechanic || null) === JSON.stringify(move.specialMechanic || null); }
+    function isCompleteAction(action) { return action && (action.type !== "move" || Boolean(action.targetSlot)); }
+    function renderTargets(slot, selected) { var zone = element("div", "target-zone"), controls = element("div", "target-buttons"); zone.appendChild(element("h4", "", "Target")); selected.targets.forEach(function(target) { controls.appendChild(button(displayPokemon(target), function() { draftActions[slot].targetSlot = target; renderTurnGrid(); refreshEffectSuggestions(); }, selected.targetSlot === target ? "selected" : "")); }); zone.appendChild(controls); return zone; }
+    function renderOtherMove(option) { var wrap = element("div", "other-move"), control = input("text", "", option.slot + "-other-move"); control.placeholder = "Other observed move"; control.setAttribute("list", "move-options"); var add = async function() { if (!control.value.trim()) return; try { var move = await api("/api/move/" + canonicalId(control.value)), targets = targetsForMove(option.side, option.slot, move.target); draftActions[option.slot] = { type: "move", activeSlot: option.slot, moveId: move.id, targets: targets, targetSlot: targets.length === 1 ? targets[0] : null }; renderTurnGrid(); refreshEffectSuggestions(); } catch (error) { setStatus(error.message, true); } }; control.addEventListener("keydown", function(event) { if (event.key === "Enter") add(); }); wrap.append(control, button("Use", add)); return wrap; }
+    function targetsForMove(side, slot, target) { var opponents = battleState.teams[otherSide(side)].active.filter(function(pokemon) { return !isFainted(pokemon); }).map(function(pokemon) { return pokemon.slot; }), allies = battleState.teams[side].active.filter(function(pokemon) { return pokemon.slot !== slot && !isFainted(pokemon); }).map(function(pokemon) { return pokemon.slot; }); if (["normal", "adjacentFoe", "randomNormal"].includes(target)) return opponents; if (target === "any") return opponents.concat(allies); if (target === "adjacentAlly") return allies; if (target === "adjacentAllyOrSelf") return [slot].concat(allies); if (target === "self") return ["self"]; if (["foeSide", "allAdjacentFoes"].includes(target)) return ["opponentSide"]; if (["allySide", "allyTeam"].includes(target)) return ["allySide"]; return ["field"]; }
+    function getPp(slot, moveId) { return (playerMovePp[slot] || []).find(function(move) { return move.moveId === moveId; }); }
+    function renderPpList(slot) { var wrap = element("div", "pp-list"); (playerMovePp[slot] || []).forEach(function(move) { wrap.appendChild(element("span", "pp", move.moveName + " " + move.currentPp + "/" + move.maxPp)); }); return wrap; }
+    function observedActions() { return Object.values(draftActions).filter(isCompleteAction).map(function(action) { if (action.type !== "move") return Object.assign({}, action); var observed = { type: "move", activeSlot: action.activeSlot, moveId: action.moveId, targetSlot: action.targetSlot }; if (action.specialMechanic) observed.specialMechanic = action.specialMechanic; return observed; }); }
+    async function refreshEffectSuggestions() { var actions = observedActions(), requestId = ++effectRequestId; if (!actions.length) { effectSuggestions = []; renderEffects(); return; } try { var body = await api("/api/turn/effects", { method: "POST", body: JSON.stringify({ actions: actions }) }); if (requestId !== effectRequestId) return; effectSuggestions = body.suggestions; Object.keys(selectedEffects).forEach(function(id) { if (!effectSuggestions.some(function(suggestion) { return suggestion.id === id; })) delete selectedEffects[id]; }); renderEffects(); } catch (_) {} }
+    function renderEffects() { var panel = document.getElementById("effects-panel"), list = document.getElementById("effect-buttons"); list.replaceChildren(); panel.hidden = effectSuggestions.length === 0; effectSuggestions.forEach(function(suggestion) { list.appendChild(button(suggestion.label + " (" + oneDecimal(suggestion.chancePercent) + "%)", function() { if (selectedEffects[suggestion.id]) delete selectedEffects[suggestion.id]; else selectedEffects[suggestion.id] = suggestion.effect; renderEffects(); }, selectedEffects[suggestion.id] ? "selected" : "")); }); }
+    async function submitTurn() { var required = turnOptions.filter(function(option) { return !option.fainted; }), missing = required.filter(function(option) { return !isCompleteAction(draftActions[option.slot]); }); if (missing.length) { setStatus("Select an action and target for " + missing.map(function(option) { return option.displayName; }).join(", ") + ".", true); return; } var hp = ["p1", "p2"].flatMap(function(side) { return battleState.teams[side].active.map(function(pokemon) { var value = Number(hpDraft[pokemon.slot]); return { slot: pokemon.slot, remainingHp: pokemon.hp.unit === "exact" ? { unit: "exact", current: value } : { unit: "percent", percent: value } }; }); }), effects = Object.values(selectedEffects), denied = new Map(effects.filter(function(effect) { return effect.kind === "action-denied"; }).map(function(effect) { return [effect.slot, effect.reason]; })), actions = observedActions().map(function(action) { if (action.type !== "no-action") return action; var hpEntry = hp.find(function(entry) { return entry.slot === action.activeSlot; }), zero = hpEntry.remainingHp.unit === "exact" ? hpEntry.remainingHp.current === 0 : hpEntry.remainingHp.percent === 0; return Object.assign({}, action, { reason: zero ? "fainted" : denied.get(action.activeSlot) === "flinched" ? "flinched" : "other" }); }); saveSettings(); setBusy(true); setStatus("Resolving turn " + battleState.turnNumber + "..."); adviceRequestId += 1; try { var body = await api("/api/turn", { method: "POST", body: JSON.stringify({ turnNumber: battleState.turnNumber, actions: actions, hp: hp, confirmedEffects: effects, ranking: settings }) }); handleResolution(body); } catch (error) { setStatus(error.message, true); } finally { setBusy(false); } }
+    function handleResolution(body) { acceptState(body); renderAdvice(body.advice); if (body.phase === "replacement-required") showReplacements(body.replacementRequests); else if (body.phase === "battle-over") showBattleOver(body.winner); else hideOverlay(); setStatus(body.phase === "ready" ? "Turn " + body.turnNumber + " ready." : body.phase === "replacement-required" ? "Replacement required." : "Battle complete."); }
+    function showReplacements(requests) { replacementRequests = requests; replacementSelections = {}; renderReplacementDialog(); document.getElementById("replacement-overlay").hidden = false; }
+    function renderReplacementDialog() { document.getElementById("replacement-title").textContent = "Choose replacements"; var content = document.getElementById("replacement-content"); content.replaceChildren(); replacementRequests.forEach(function(request) { var block = element("section", "replacement-block"), controls = element("div", "replacement-buttons"); block.appendChild(element("h3", "", request.side + " " + request.activeSlot)); request.choices.forEach(function(choice) { var chosenElsewhere = Object.keys(replacementSelections).some(function(slot) { return slot !== request.activeSlot && replacementSelections[slot] === choice.speciesId; }), control = button(choice.displayName, function() { replacementSelections[request.activeSlot] = choice.speciesId; renderReplacementDialog(); if (replacementRequests.every(function(required) { return replacementSelections[required.activeSlot]; })) submitReplacements(); }, replacementSelections[request.activeSlot] === choice.speciesId ? "selected" : ""); control.disabled = busy || chosenElsewhere; controls.appendChild(control); }); block.appendChild(controls); content.appendChild(block); }); }
+    async function submitReplacements() { setBusy(true); renderReplacementDialog(); try { var replacements = replacementRequests.map(function(request) { return { side: request.side, activeSlot: request.activeSlot, speciesId: replacementSelections[request.activeSlot] }; }), body = await api("/api/replacements", { method: "POST", body: JSON.stringify({ replacements: replacements, ranking: settings }) }); handleResolution(body); } catch (error) { setStatus(error.message, true); } finally { setBusy(false); } }
+    function showBattleOver(winner) { document.getElementById("replacement-title").textContent = winner ? winner + " wins" : "Battle complete"; var content = document.getElementById("replacement-content"); content.replaceChildren(button("Close", hideOverlay)); document.getElementById("replacement-overlay").hidden = false; }
+    function hideOverlay() { document.getElementById("replacement-overlay").hidden = true; }
+    async function analyze() { if (!battleState) return; saveSettings(); var requestId = ++adviceRequestId; setStatus("Ranking plans..."); try { var body = await api("/api/rank", { method: "POST", body: JSON.stringify({ top: settings.top, maxOpponentPlans: settings.maxOpponentPlans }) }); if (requestId !== adviceRequestId) return; renderAdvice(body); setStatus(body.totalPlans + " plans ranked."); } catch (error) { if (requestId === adviceRequestId) setStatus(error.message, true); } }
+    function renderAdvice(body) { var list = document.getElementById("advice-list"); list.replaceChildren(); document.getElementById("rank-time").textContent = body ? Math.round(body.elapsedMs) + " ms" : ""; if (!body) return; body.results.forEach(function(result) { var card = element("article", "advice-card"), tags = element("div", "advice-tags"); card.append(element("h3", "", result.rank + ". Recommended turn"), element("div", "score", "Score " + round(result.score) + " | expected " + round(result.expectedScore) + " | worst " + round(result.worstCaseScore))); (result.explanationTags || []).forEach(function(tag) { tags.appendChild(element("span", "tag", tag.replace(/-/g, " "))); }); card.appendChild(tags); result.actions.forEach(function(action) { card.appendChild(renderAdviceAction(action, false)); }); card.appendChild(renderWorstCase(result.worstCase)); list.appendChild(card); }); }
+    function renderAdviceAction(action, incoming) { var row = element("div", "action-line"); if (action.type === "switch") { row.appendChild(element("div", "action-name", action.actorSpecies + " switches to " + action.switchSpecies)); return row; } row.appendChild(element("div", "action-name", action.actorSpecies + " uses " + action.moveName + " on " + action.targetSpecies)); if (action.damage) row.appendChild(element("div", "damage-line", incoming ? action.actionChancePercent === 0 ? "Cannot act: KO'd before its move" : "Expected incoming " + oneDecimal(action.adjustedExpectedDamage) + " HP | critical max " + action.damage.criticalMaxDamage + " HP | acts " + oneDecimal(action.actionChancePercent) + "% | hit " + oneDecimal(action.damage.accuracyPercent) + "%" : "Expected damage " + oneDecimal(action.damage.expectedDamagePercent) + "% | normal " + oneDecimal(action.damage.normalMinDamagePercent) + "-" + oneDecimal(action.damage.normalMaxDamagePercent) + "% | critical max " + oneDecimal(action.damage.criticalMaxDamagePercent) + "% | KO " + oneDecimal(action.damage.koChancePercent) + "% | hit " + oneDecimal(action.damage.accuracyPercent) + "%")); else row.appendChild(element("div", "damage-line", "No direct damage")); return row; }
+    function renderWorstCase(worstCase) { var wrap = element("section", "plan-worst-case"); wrap.appendChild(element("h4", "", "Worst enemy response")); worstCase.actions.forEach(function(action) { wrap.appendChild(renderAdviceAction(action, true)); }); wrap.appendChild(element("div", "score", "Expected incoming " + oneDecimal(worstCase.totalExpectedDamage) + " HP | critical maximum " + worstCase.totalCriticalMaxDamage + " HP")); return wrap; }
+    async function applyEvent(event) { setStatus("Applying correction..."); try { var body = await api("/api/event", { method: "POST", body: JSON.stringify(event) }); acceptState(body); setStatus("Correction applied."); } catch (error) { setStatus(error.message, true); } }
+    function renderCorrections() { var grid = document.getElementById("correction-grid"); grid.replaceChildren(); grid.appendChild(renderFieldCorrection()); ["p1", "p2"].forEach(function(side) { grid.appendChild(renderSideCorrection(side)); battleState.teams[side].active.forEach(function(pokemon) { grid.appendChild(renderPokemonCorrection(pokemon, side)); }); }); }
+    function renderFieldCorrection() { var panel = element("section", "correction-panel"), turn = input("number", battleState.turnNumber, "correct-turn"), weather = select(["", "rain", "sun", "sandstorm", "snow", "harshsunshine", "heavyrain", "strongwinds"], battleState.field.weather || "", "correct-weather"), weatherTurns = input("number", battleState.field.weatherTurnsRemaining, "correct-weather-turns"), terrain = select(["", "electric", "grassy", "misty", "psychic"], battleState.field.terrain || "", "correct-terrain"), terrainTurns = input("number", battleState.field.terrainTurnsRemaining, "correct-terrain-turns"), trickRoom = input("number", battleState.field.trickRoomTurnsRemaining, "correct-trick-room"), gravity = input("number", battleState.field.gravityTurnsRemaining, "correct-gravity"); panel.appendChild(element("h3", "", "Turn and field")); panel.appendChild(compact(field("Turn", turn), button("Set", function() { applyEvent({ type: "turn-started", turnNumber: Number(turn.value) }); }))); panel.append(compact(field("Weather", weather), field("Turns", weatherTurns)), compact(field("Terrain", terrain), field("Turns", terrainTurns)), compact(field("Trick Room", trickRoom), field("Gravity", gravity)), button("Apply field", function() { applyEvent({ type: "field-changed", changes: { weather: weather.value || null, weatherTurnsRemaining: Number(weatherTurns.value), terrain: terrain.value || null, terrainTurnsRemaining: Number(terrainTurns.value), trickRoomTurnsRemaining: Number(trickRoom.value), gravityTurnsRemaining: Number(gravity.value) } }); })); return panel; }
+    function renderSideCorrection(side) { var conditions = battleState.teams[side].sideConditions, panel = element("section", "correction-panel"), tailwind = input("number", conditions.tailwindTurns, side + "-correct-tailwind"), reflect = input("number", conditions.reflectTurns, side + "-correct-reflect"), lightScreen = input("number", conditions.lightScreenTurns, side + "-correct-light-screen"), veil = input("number", conditions.auroraVeilTurns, side + "-correct-veil"); panel.appendChild(element("h3", "", side + " side conditions")); panel.append(compact(field("Tailwind", tailwind), field("Reflect", reflect)), compact(field("Light Screen", lightScreen), field("Aurora Veil", veil)), button("Apply side", function() { applyEvent({ type: "side-condition-changed", side: side, changes: { tailwindTurns: Number(tailwind.value), reflectTurns: Number(reflect.value), lightScreenTurns: Number(lightScreen.value), auroraVeilTurns: Number(veil.value) } }); })); return panel; }
+    function renderPokemonCorrection(pokemon, side) { var panel = element("section", "correction-panel"), status = select(statuses, pokemon.status, pokemon.slot + "-correct-status"), hp = input("number", pokemon.hp.unit === "exact" ? pokemon.hp.current : pokemon.hp.percent, pokemon.slot + "-correct-hp"), item = input("text", pokemon.currentItemId === undefined ? pokemon.set.itemId || "" : pokemon.currentItemId || "", pokemon.slot + "-correct-item"), ability = input("text", pokemon.currentAbilityId || pokemon.set.abilityId, pokemon.slot + "-correct-ability"), boostStat = select(boostStats, "atk", pokemon.slot + "-correct-boost-stat"), boostStage = input("number", pokemon.boosts.atk, pokemon.slot + "-correct-boost-stage"); panel.appendChild(element("h3", "", (pokemon.set.displayName || pokemon.set.speciesId) + " | " + pokemon.slot)); panel.appendChild(compact(field(pokemon.hp.unit === "exact" ? "HP" : "HP %", hp), button("Apply", function() { applyEvent({ type: "damage-observed", slot: pokemon.slot, remainingHp: pokemon.hp.unit === "exact" ? { unit: "exact", current: Number(hp.value) } : { unit: "percent", percent: Number(hp.value) } }); }))); panel.appendChild(compact(field("Status", status), button("Apply", function() { applyEvent(status.value === "healthy" ? { type: "status-cleared", slot: pokemon.slot } : { type: "status-applied", slot: pokemon.slot, status: status.value }); }))); panel.appendChild(compact(field("Boost", boostStat), field("Stage", boostStage))); panel.appendChild(button("Apply boost", function() { var boosts = Object.assign({}, pokemon.boosts); boosts[boostStat.value] = Number(boostStage.value); applyEvent({ type: "boosts-changed", slot: pokemon.slot, boosts: boosts }); })); panel.appendChild(button("Faint", function() { applyEvent({ type: "faint-observed", slot: pokemon.slot }); }, "danger")); panel.appendChild(compact(field("Item", item), button("Apply", function() { applyEvent({ type: "item-changed", slot: pokemon.slot, itemId: item.value.trim() ? canonicalId(item.value) : null }); }))); panel.appendChild(compact(field("Ability", ability), button("Apply", function() { applyEvent({ type: "ability-changed", slot: pokemon.slot, abilityId: canonicalId(ability.value) }); }))); var bench = battleState.teams[side].bench.filter(function(member) { return !member.fainted; }); if (bench.length) { var benchSelect = select(bench.map(function(member) { return String(member.benchSlot); }), String(bench[0].benchSlot), pokemon.slot + "-correct-bench"); Array.from(benchSelect.options).forEach(function(option) { var member = bench.find(function(candidate) { return String(candidate.benchSlot) === option.value; }); option.textContent = member.set.displayName || member.set.speciesId; }); panel.appendChild(compact(field("Switch", benchSelect), button("Apply", function() { applyEvent({ type: "switch-observed", side: side, activeSlot: pokemon.slot, benchSlot: Number(benchSelect.value) }); }))); } return panel; }
+    function compact(first, second) { var row = element("div", "compact-row"); row.append(first, second); return row; }
+    document.getElementById("end-turn").addEventListener("click", submitTurn); document.getElementById("refresh-advice").addEventListener("click", analyze); document.getElementById("recommendations").addEventListener("change", saveSettings); document.getElementById("opponent-scenarios").addEventListener("change", saveSettings);
+    api("/api/state").then(function(stateResult) { return api("/api/setup/catalog?regulationId=" + encodeURIComponent(stateResult.state.regulationId)).then(function(catalog) { return [stateResult, catalog]; }); }).then(function(results) { moveCatalog = results[1].moves || []; var datalist = document.getElementById("move-options"); moveCatalog.forEach(function(move) { var option = document.createElement("option"); option.value = move.name; datalist.appendChild(option); }); acceptState(results[0]); if (results[0].replacementRequests.length) showReplacements(results[0].replacementRequests); else analyze(); setStatus("Ready."); }).catch(function(error) { document.getElementById("connection").textContent = "Disconnected"; setStatus(error.message, true); });
   </script>
 </body>
 </html>`;

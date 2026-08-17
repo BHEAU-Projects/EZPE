@@ -15,6 +15,9 @@ import {
 import { scoreSingleTurnOutcome } from "./scoring.js";
 import { generateLegalActions } from "./legal-action-generator.js";
 
+const simulationCache = new Map<string, ReturnType<typeof simulateSingleTurn>>();
+const maxSimulationCacheEntries = 2_000;
+
 export function rankMoves(battleState: BattleState, input: RankMovesInput): AdviceResult[] {
   const opponentSide = battleState.playerSide === "p1" ? "p2" : "p1";
   if (!hasLivingActive(battleState, battleState.playerSide) || !hasLivingActive(battleState, opponentSide)) {
@@ -25,6 +28,7 @@ export function rankMoves(battleState: BattleState, input: RankMovesInput): Advi
   const opponentPlans = getOpponentPlans(battleState, input);
   const seeds = getSimulationSeeds(input);
   const scoringConfig = scoringConfigStore.get();
+  const stateCacheKey = JSON.stringify(battleState);
   const scoredResults = actionPlans.map((actionPlan) => {
     const branches = opponentPlans.flatMap((opponentPlan) =>
       seeds.map((seed) => {
@@ -33,7 +37,8 @@ export function rankMoves(battleState: BattleState, input: RankMovesInput): Advi
           actionPlan,
           opponentPlan.showdownChoice,
           input,
-          seed
+          seed,
+          stateCacheKey
         );
         return {
           opponentPlan,
@@ -146,7 +151,8 @@ function simulateActionPlan(
   actionPlan: ActionPlan,
   opponentChoice: string,
   input: RankMovesInput,
-  seed: SimulationSeed
+  seed: SimulationSeed,
+  stateCacheKey: string
 ) {
   const choices = buildSingleTurnChoices(
     battleState.playerSide,
@@ -156,10 +162,15 @@ function simulateActionPlan(
   );
   const simulationInput = createSingleTurnSimulationInputFromBattleState(battleState, choices);
 
-  return simulateSingleTurn({
-    ...simulationInput,
-    seed
-  });
+  const cacheKey = `${stateCacheKey}|${actionPlan.showdownChoice}|${opponentChoice}|${seed.join(",")}`;
+  const cached = simulationCache.get(cacheKey);
+  if (cached) return cached;
+  const simulation = simulateSingleTurn({ ...simulationInput, seed });
+  simulationCache.set(cacheKey, simulation);
+  if (simulationCache.size > maxSimulationCacheEntries) {
+    simulationCache.delete(simulationCache.keys().next().value!);
+  }
+  return simulation;
 }
 
 function buildSingleTurnChoices(

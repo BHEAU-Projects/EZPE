@@ -33,9 +33,47 @@ describe("Quick Capture server", () => {
     expect(setup.body).toContain("Stat Points");
     expect(setup.body).not.toContain("IVs and EVs");
     expect(setup.body).not.toContain("Nickname");
-    expect(battle.body).toContain("EZPE Quick Capture");
-    expect(battle.body).toContain("Analyze turn");
+    expect(battle.body).toContain("Live Battle");
+    expect(battle.body).toContain("Turn Report");
+    expect(battle.body).toContain("End Turn");
+    expect(battle.body).toContain("Recommendations");
+    expect(battle.body).toContain("Opponent scenarios");
+    expect(battle.body).toContain("Manual corrections");
+    expect(battle.body).toContain("Observed Effects");
+    expect(battle.body).toContain('localStorage.getItem("ezpe-ranking-settings")');
     expect(health.json()).toEqual({ status: "ok", version: "0.1.0" });
+  });
+
+  it("returns compact move, target, switch, and metadata options for the turn screen", async () => {
+    const server = createApp();
+    const state = await server.inject({ method: "GET", url: "/api/state" });
+    const move = await server.inject({ method: "GET", url: "/api/move/thunderbolt" });
+
+    expect(state.statusCode).toBe(200);
+    expect(state.json().turnOptions).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        side: "p1",
+        slot: "p1a",
+        speciesId: "pikachu",
+        moves: expect.arrayContaining([
+          expect.objectContaining({
+            moveId: "thunderbolt",
+            moveName: "Thunderbolt",
+            targets: expect.arrayContaining(["p2a", "p2b"])
+          })
+        ])
+      }),
+      expect.objectContaining({ side: "p2", slot: "p2a", moves: expect.any(Array) })
+    ]));
+    expect(move.statusCode).toBe(200);
+    expect(move.json()).toMatchObject({
+      id: "thunderbolt",
+      name: "Thunderbolt",
+      basePower: 90,
+      accuracy: 100,
+      pp: 15,
+      target: "normal"
+    });
   });
 
   it("builds a live battle from player and opponent setup submissions", async () => {
@@ -178,6 +216,16 @@ describe("Quick Capture server", () => {
         }
       ]
     });
+  });
+
+  it("keeps a representative warm recommendation below two seconds", async () => {
+    const server = createApp();
+    const payload = { top: 1, maxOpponentPlans: 1 };
+    await server.inject({ method: "POST", url: "/api/rank", payload });
+    const warm = await server.inject({ method: "POST", url: "/api/rank", payload });
+
+    expect(warm.statusCode).toBe(200);
+    expect(warm.json().elapsedMs).toBeLessThan(2_000);
   });
 
   it("rejects malformed updates without changing the session", async () => {
