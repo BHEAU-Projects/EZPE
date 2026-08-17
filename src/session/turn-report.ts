@@ -14,6 +14,7 @@ import {
 import { pokemonDataService } from "../data/pokemon-data-service.js";
 import type { BattleEvent } from "./battle-events.js";
 import { applyBattleEvent } from "./state-reducer.js";
+import { applyAutomaticTurnEffects } from "./turn-effects.js";
 
 const canonicalIdSchema = z.string().min(1).regex(/^[a-z0-9]+$/);
 
@@ -146,6 +147,8 @@ export function applyTurnReport(state: BattleState, report: TurnReport): Applied
   for (const observation of parsedReport.hp) {
     apply({ type: "damage-observed", slot: observation.slot, remainingHp: observation.remainingHp });
   }
+
+  nextState = applyAutomaticTurnEffects(currentState, nextState, parsedReport);
 
   for (const effect of parsedReport.confirmedEffects) {
     const event = confirmedEffectToEvent(effect);

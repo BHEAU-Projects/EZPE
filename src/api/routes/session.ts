@@ -4,6 +4,8 @@ import type { FastifyInstance } from "fastify";
 import type { BattleSession } from "../../session/battle-session.js";
 import { battleEventSchema } from "../../session/battle-events.js";
 import { turnReportSchema } from "../../session/turn-report.js";
+import { observedActionSchema } from "../../session/turn-report.js";
+import { suggestTurnEffects } from "../../session/turn-effects.js";
 import { AdvicePresenter, presentPlayerMovePp } from "../../advisor/advice-presenter.js";
 
 const rankRequestSchema = z
@@ -12,6 +14,8 @@ const rankRequestSchema = z
     maxOpponentPlans: z.number().int().min(1).max(24).default(4)
   })
   .strict();
+
+const turnEffectRequestSchema = z.object({ actions: z.array(observedActionSchema).min(1).max(4) }).strict();
 
 export function registerSessionRoutes(app: FastifyInstance, session: BattleSession): void {
   app.get("/api/state", async () => statePayload(session));
@@ -50,6 +54,14 @@ export function registerSessionRoutes(app: FastifyInstance, session: BattleSessi
     } catch (error) {
       return reply.code(400).send({ error: formatError(error) });
     }
+  });
+
+  app.post("/api/turn/effects", async (request, reply) => {
+    const input = turnEffectRequestSchema.safeParse(request.body);
+    if (!input.success) {
+      return reply.code(400).send({ error: "Invalid observed actions.", issues: input.error.issues });
+    }
+    return { suggestions: suggestTurnEffects(session.getState(), input.data.actions) };
   });
 
   app.post("/api/rank", async (request, reply) => {
