@@ -13,6 +13,8 @@ const squirtle: PokemonSet = {
   itemId: null,
   abilityId: "torrent",
   moveIds: ["tackle"],
+  statAlignment: "Serious",
+  statPoints: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
   stats: { hp: 120, atk: 70, def: 70, spa: 70, spd: 70, spe: 70 }
 };
 

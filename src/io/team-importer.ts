@@ -3,18 +3,17 @@ import { readFileSync } from "node:fs";
 import PokemonShowdown from "pokemon-showdown";
 
 import {
+  defaultStatPoints,
+  legacyEvsToStatPoints,
   pokemonSetSchema,
+  statPointTableSchema,
   type PokemonSet,
-  type StatTable
 } from "../domain/battle-state.js";
 import { pokemonDataService } from "../data/pokemon-data-service.js";
 import { getRegulationById } from "../data/regulations.js";
 import { usageMovesetStore } from "../data/usage-movesets.js";
 
 const { Teams } = PokemonShowdown;
-
-const emptyEvs: StatTable = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
-const perfectIvs: StatTable = { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 };
 
 export function importTeamFile(path: string, regulationId: string): PokemonSet[] {
   return importTeam(readFileSync(path, "utf8"), regulationId);
@@ -51,10 +50,16 @@ export function importTeam(
     const species = pokemonDataService.getSpecies(regulationId, speciesId);
     if (!species) throw new Error(`Unknown species '${rawSet.species}'.`);
 
-    const level = rawSet.level ?? 50;
-    const nature = rawSet.nature || "Serious";
-    const evs = { ...emptyEvs, ...rawSet.evs };
-    const ivs = { ...perfectIvs, ...rawSet.ivs };
+    const regulation = getRegulationById(regulationId);
+    if (!regulation) throw new Error(`Unknown regulation '${regulationId}'.`);
+    const level = regulation.battleRules.level;
+    const statAlignment = rawSet.nature || "Serious";
+    const importedEvs = { ...defaultStatPoints, ...rawSet.evs } as Record<keyof typeof defaultStatPoints, number>;
+    const importedEvValues = Object.values(importedEvs);
+    const importedEvTotal = importedEvValues.reduce((sum, value) => sum + value, 0);
+    const statPoints = importedEvValues.some((value) => value > 32) || importedEvTotal > 66
+      ? legacyEvsToStatPoints(importedEvs)
+      : statPointTableSchema.parse(importedEvs);
     const abilityId = pokemonDataService.canonicalId(
       rawSet.ability || species.abilityIds[0] || ""
     );
@@ -69,7 +74,7 @@ export function importTeam(
       );
     }
     const stats = pokemonDataService.calculateStats(
-      { speciesId, level, nature, evs, ivs },
+      { speciesId, level, statAlignment, statPoints },
       regulationId
     );
 
@@ -81,10 +86,9 @@ export function importTeam(
       itemId: rawSet.item ? pokemonDataService.canonicalId(rawSet.item) : null,
       abilityId,
       moveIds,
-      nature,
+      statAlignment,
       stats,
-      evs,
-      ivs,
+      statPoints,
       ...(usePopularOpponentMoves
         ? {
             moveKnowledge: popularMoveset

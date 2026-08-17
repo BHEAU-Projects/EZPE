@@ -8,6 +8,11 @@ import type {
   PokemonSet,
   StatTable
 } from "../domain/battle-state.js";
+import {
+  fixedChampionsIvs,
+  statIds,
+  statPointsToLegacyEvs
+} from "../domain/battle-state.js";
 import { getOverridesForRegulation } from "./champions-overrides.js";
 import {
   getRegulationById,
@@ -21,7 +26,6 @@ type TeamValidatorInstance = InstanceType<typeof TeamValidator>;
 type ValidatorTeam = NonNullable<Parameters<TeamValidatorInstance["validateTeam"]>[0]>;
 type StatId = keyof StatTable;
 
-const statIds: StatId[] = ["hp", "atk", "def", "spa", "spd", "spe"];
 const generations = new Generations(PkmnDex);
 const generationNine = generations.get(9);
 
@@ -50,7 +54,7 @@ export interface SetupCatalog {
   moves: SetupCatalogEntry[];
   items: SetupCatalogEntry[];
   abilities: SetupCatalogEntry[];
-  natures: string[];
+  statAlignments: string[];
 }
 
 export interface MoveData {
@@ -132,7 +136,7 @@ export class PokemonDataService {
         .filter((ability) => ability.exists && !ability.isNonstandard)
         .map((ability) => ({ id: ability.id, name: ability.name }))
         .sort((a, b) => a.name.localeCompare(b.name)),
-      natures: dex.natures.all().map((nature) => nature.name).sort()
+      statAlignments: dex.natures.all().map((nature) => nature.name).sort()
     };
   }
 
@@ -187,17 +191,22 @@ export class PokemonDataService {
     };
   }
 
-  calculateStats(set: Pick<PokemonSet, "speciesId" | "formId" | "level" | "nature" | "evs" | "ivs">, regulationId: string): StatTable {
+  calculateStats(
+    set: Pick<PokemonSet, "speciesId" | "formId" | "level" | "statAlignment" | "statPoints">,
+    regulationId: string
+  ): StatTable {
     const species = this.getSpecies(regulationId, set.formId ?? set.speciesId);
 
     if (!species) {
       throw new Error(`Unknown species: ${set.formId ?? set.speciesId}`);
     }
 
-    const nature = set.nature ? generationNine.natures.get(set.nature) : undefined;
-    if (set.nature && !nature) {
-      throw new Error(`Unknown nature: ${set.nature}`);
+    const alignment = generationNine.natures.get(set.statAlignment);
+    if (!alignment) {
+      throw new Error(`Unknown Stat Alignment: ${set.statAlignment}`);
     }
+
+    const legacyEvs = statPointsToLegacyEvs(set.statPoints);
 
     return Object.fromEntries(
       statIds.map((stat) => [
@@ -205,10 +214,10 @@ export class PokemonDataService {
         generationNine.stats.calc(
           stat,
           species.baseStats[stat],
-          set.ivs?.[stat] ?? 31,
-          set.evs?.[stat] ?? 0,
+          fixedChampionsIvs[stat],
+          legacyEvs[stat],
           set.level,
-          nature
+          alignment
         )
       ])
     ) as unknown as StatTable;
@@ -278,7 +287,7 @@ export class PokemonDataService {
         }
       }
 
-      if (set.evs && set.ivs && set.nature && species) {
+      if (species) {
         const calculatedStats = this.calculateStats(set, regulationId);
         for (const stat of statIds) {
           if (calculatedStats[stat] !== set.stats[stat]) {
@@ -361,9 +370,9 @@ export class PokemonDataService {
       item: set.itemId ?? "",
       ability: set.abilityId,
       moves: [...set.moveIds],
-      nature: set.nature ?? "Serious",
-      evs: set.evs,
-      ivs: set.ivs,
+      nature: set.statAlignment,
+      evs: { ...set.statPoints },
+      ivs: { ...fixedChampionsIvs },
       level: set.level,
       gender: set.gender
     })) as ValidatorTeam;

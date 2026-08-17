@@ -9,6 +9,7 @@ import type {
   StatTable,
   TeamState
 } from "../domain/battle-state.js";
+import { fixedChampionsIvs } from "../domain/battle-state.js";
 import { getRegulationById } from "../data/regulations.js";
 import {
   captureHydratedBattleState,
@@ -108,24 +109,6 @@ export interface SingleTurnSimulationResult {
 
 type ShowdownSeed = `${number},${string}` | `gen5,${string}` | `sodium,${string}`;
 
-const defaultStats: StatTable = {
-  hp: 0,
-  atk: 0,
-  def: 0,
-  spa: 0,
-  spd: 0,
-  spe: 0
-};
-
-const defaultIvs: StatTable = {
-  hp: 31,
-  atk: 31,
-  def: 31,
-  spa: 31,
-  spd: 31,
-  spe: 31
-};
-
 export function getShowdownFormatIdForRegulation(regulationId: string): string {
   const regulation = getRegulationById(regulationId);
 
@@ -143,9 +126,10 @@ export function toShowdownPokemonSet(set: PokemonSet): ShowdownPokemonSet {
     item: set.itemId ?? "",
     ability: set.abilityId,
     moves: [...set.moveIds],
-    nature: set.nature ?? "Serious",
-    evs: set.evs ?? defaultStats,
-    ivs: set.ivs ?? defaultIvs,
+    nature: set.statAlignment,
+    // The Champions mod reads Stat Points directly from Showdown's `evs` field.
+    evs: { ...set.statPoints },
+    ivs: { ...fixedChampionsIvs },
     level: set.level,
     gender: set.gender ?? ""
   };

@@ -1,14 +1,7 @@
 import type { BattleState } from "../domain/battle-state.js";
 import type { BattleStateSingleTurnChoices } from "../sim/showdown-adapter.js";
 
-const neutralStats = {
-  hp: 120,
-  atk: 70,
-  def: 70,
-  spa: 70,
-  spd: 70,
-  spe: 70
-};
+const zeroStatPoints = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
 
 const emptyBoosts = {
   atk: 0,
@@ -38,8 +31,9 @@ export const singleTurnBattleState: BattleState = {
             itemId: "lightball",
             abilityId: "static",
             moveIds: ["thunderbolt", "protect"],
-            nature: "Serious",
-            stats: neutralStats
+            statAlignment: "Serious",
+            statPoints: zeroStatPoints,
+            stats: { hp: 110, atk: 75, def: 60, spa: 70, spd: 70, spe: 110 }
           },
           hp: { unit: "exact", current: 110, max: 110 },
           status: "healthy",
@@ -56,8 +50,9 @@ export const singleTurnBattleState: BattleState = {
             itemId: null,
             abilityId: "overgrow",
             moveIds: ["tackle", "protect"],
-            nature: "Serious",
-            stats: neutralStats
+            statAlignment: "Serious",
+            statPoints: zeroStatPoints,
+            stats: { hp: 120, atk: 69, def: 69, spa: 85, spd: 85, spe: 65 }
           },
           hp: { unit: "exact", current: 120, max: 120 },
           status: "healthy",
@@ -91,8 +86,9 @@ export const singleTurnBattleState: BattleState = {
             itemId: null,
             abilityId: "torrent",
             moveIds: ["tackle", "protect"],
-            nature: "Serious",
-            stats: neutralStats
+            statAlignment: "Serious",
+            statPoints: zeroStatPoints,
+            stats: { hp: 119, atk: 68, def: 85, spa: 70, spd: 84, spe: 63 }
           },
           hp: { unit: "percent", percent: 100 },
           status: "healthy",
@@ -109,8 +105,9 @@ export const singleTurnBattleState: BattleState = {
             itemId: null,
             abilityId: "blaze",
             moveIds: ["scratch", "protect"],
-            nature: "Serious",
-            stats: neutralStats
+            statAlignment: "Serious",
+            statPoints: zeroStatPoints,
+            stats: { hp: 114, atk: 72, def: 63, spa: 80, spd: 70, spe: 85 }
           },
           hp: { unit: "percent", percent: 100 },
           status: "healthy",

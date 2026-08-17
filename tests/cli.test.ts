@@ -30,6 +30,13 @@ Serious Nature
 - Tackle
 - Protect`;
 
+const legacyEvTeam = `Pikachu @ Light Ball
+Ability: Static
+EVs: 4 HP / 252 SpA / 252 Spe
+Modest Nature
+- Thunderbolt
+- Protect`;
+
 describe("terminal team and state input", () => {
   it("imports Showdown exports into canonical calculated sets", () => {
     const team = importTeam(showdownTeam, "development");
@@ -41,6 +48,17 @@ describe("terminal team and state input", () => {
       abilityId: "static",
       moveIds: ["thunderbolt", "protect"],
       stats: { hp: 110, spe: 110 }
+    });
+  });
+
+  it("converts a legacy Showdown EV spread into Champions Stat Points", () => {
+    const [pikachu] = importTeam(legacyEvTeam, "development");
+
+    expect(pikachu).toMatchObject({
+      level: 50,
+      statAlignment: "Modest",
+      statPoints: { hp: 1, atk: 0, def: 0, spa: 32, spd: 0, spe: 32 },
+      stats: { hp: 111, spa: 112, spe: 142 }
     });
   });
 

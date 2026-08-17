@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { battleStateSchema, type BattleState } from "../src/domain/battle-state.js";
+import {
+  battleStateSchema,
+  legacyEvsToStatPoints,
+  statPointsToLegacyEvs,
+  type BattleState
+} from "../src/domain/battle-state.js";
 
 const baseStats = {
   hp: 170,
@@ -10,6 +15,8 @@ const baseStats = {
   spd: 100,
   spe: 80
 };
+
+const emptyStatPoints = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
 
 const validBattleState: BattleState = {
   format: "champions-vgc-doubles",
@@ -29,6 +36,8 @@ const validBattleState: BattleState = {
             itemId: "sitrusberry",
             abilityId: "intimidate",
             moveIds: ["fakeout", "flareblitz", "partingshot", "protect"],
+            statAlignment: "Serious",
+            statPoints: emptyStatPoints,
             stats: baseStats
           },
           hp: { unit: "exact", current: 170, max: 170 },
@@ -54,6 +63,8 @@ const validBattleState: BattleState = {
             itemId: "assaultvest",
             abilityId: "grassysurge",
             moveIds: ["woodhammer", "fakeout", "uturn", "grassyglide"],
+            statAlignment: "Serious",
+            statPoints: emptyStatPoints,
             stats: baseStats
           },
           hp: { unit: "exact", current: 175, max: 175 },
@@ -96,6 +107,8 @@ const validBattleState: BattleState = {
             itemId: "choicespecs",
             abilityId: "protosynthesis",
             moveIds: ["moonblast", "shadowball", "dazzlinggleam", "protect"],
+            statAlignment: "Serious",
+            statPoints: emptyStatPoints,
             stats: baseStats
           },
           hp: { unit: "percent", percent: 100 },
@@ -149,6 +162,20 @@ const validBattleState: BattleState = {
 };
 
 describe("battleStateSchema", () => {
+  it("converts legacy level-50 EV spreads to Champions Stat Points", () => {
+    const points = legacyEvsToStatPoints({ hp: 4, atk: 252, spe: 252 });
+
+    expect(points).toEqual({ hp: 1, atk: 32, def: 0, spa: 0, spd: 0, spe: 32 });
+    expect(statPointsToLegacyEvs(points)).toEqual({
+      hp: 4,
+      atk: 252,
+      def: 0,
+      spa: 0,
+      spd: 0,
+      spe: 252
+    });
+  });
+
   it("accepts a valid minimal Doubles/VGC battle state", () => {
     expect(battleStateSchema.safeParse(validBattleState).success).toBe(true);
   });
@@ -200,6 +227,23 @@ describe("battleStateSchema", () => {
     state.teams.p1.active[0].boosts.atk = 7;
 
     expect(battleStateSchema.safeParse(state).success).toBe(false);
+  });
+
+  it("rejects Stat Points above the per-stat and total limits", () => {
+    const abovePerStat = structuredClone(validBattleState);
+    abovePerStat.teams.p1.active[0].set.statPoints.hp = 33;
+    const aboveTotal = structuredClone(validBattleState);
+    aboveTotal.teams.p1.active[0].set.statPoints = {
+      hp: 32,
+      atk: 32,
+      def: 2,
+      spa: 1,
+      spd: 0,
+      spe: 0
+    };
+
+    expect(battleStateSchema.safeParse(abovePerStat).success).toBe(false);
+    expect(battleStateSchema.safeParse(aboveTotal).success).toBe(false);
   });
 
   it("defaults missing legal actions because they are derived later", () => {

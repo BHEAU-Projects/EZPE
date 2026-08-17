@@ -14,10 +14,9 @@ const neutralPikachu: PokemonSet = {
   itemId: "lightball",
   abilityId: "static",
   moveIds: ["thunderbolt", "protect"],
-  nature: "Serious",
+  statAlignment: "Serious",
+  statPoints: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
   stats: { hp: 110, atk: 75, def: 60, spa: 70, spd: 70, spe: 110 },
-  evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
-  ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 }
 };
 
 describe("PokemonDataService", () => {
@@ -36,10 +35,23 @@ describe("PokemonDataService", () => {
     });
   });
 
-  it("calculates level, IV, EV, and nature-based stats", () => {
+  it("calculates fixed-level Champions stats from Stat Points and alignment", () => {
     expect(pokemonDataService.calculateStats(neutralPikachu, "development")).toEqual(
       neutralPikachu.stats
     );
+
+    expect(pokemonDataService.calculateStats({
+      ...neutralPikachu,
+      statAlignment: "Modest",
+      statPoints: { hp: 0, atk: 0, def: 0, spa: 32, spd: 0, spe: 0 }
+    }, "development")).toEqual({
+      hp: 110,
+      atk: 67,
+      def: 60,
+      spa: 112,
+      spd: 70,
+      spe: 110
+    });
   });
 
   it("validates known battle-state data", () => {

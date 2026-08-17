@@ -59,10 +59,27 @@ second page records the opposing preview roster and two expected leads. Starting
 the battle opens the live-turn screen at `http://127.0.0.1:4173/battle`.
 
 Your roster stores species or battle-relevant form, gender, nickname, Ability,
-item, nature/stat alignment, level, moves, IVs, and EVs. The app calculates battle
-stats from those inputs. The opponent setup only needs species or form and gender;
-hidden Abilities, stats, and moves use neutral or local usage-based assumptions
-until observations in battle replace them.
+item, Stat Alignment, moves, and the six Champions Stat Point values. Champions
+battles are level 50, so the app fixes the level and calculates battle stats from
+those inputs. Each stat accepts 0-32 Stat Points, with a 66-point total limit.
+IVs are fixed internally at their maximum equivalent and are not user inputs. The
+opponent setup only needs species or form and gender; hidden Abilities, stats, and
+moves use neutral or local usage-based assumptions until observations in battle
+replace them.
+
+## Champions Stat Model
+
+The domain model follows Pokemon Champions rather than exposing the main-series
+IV and EV fields. A build contains `statAlignment` and `statPoints`; level 50 and
+maximum-equivalent IVs are fixed automatically. Showdown exports with values
+outside Champions' 32-per-stat or 66-total limits are recognized as legacy EV
+spreads and converted during import; for example, 4/252/252 becomes 1/32/32
+Stat Points.
+
+The Showdown Champions simulator still names its wire fields `nature`, `evs`, and
+`ivs`. Those names exist only at the adapter boundary: Stat Alignment is sent as
+`nature`, Stat Points are sent directly as the Champions mod's `evs`, and fixed
+IVs are supplied for compatibility.
 
 You can also start a real session from files with:
 

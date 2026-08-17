@@ -84,6 +84,10 @@ export const statusConditionSchema = z.enum([
 
 export const pokemonGenderSchema = z.enum(["M", "F", "N"]);
 
+export const statIds = ["hp", "atk", "def", "spa", "spd", "spe"] as const;
+export const maxStatPointsPerStat = 32;
+export const maxTotalStatPoints = 66;
+
 export const statTableSchema = z
   .object({
     hp: z.number().int().min(1).max(999),
@@ -95,27 +99,34 @@ export const statTableSchema = z
   })
   .strict();
 
-export const evTableSchema = z
+export const statPointTableSchema = z
   .object({
-    hp: z.number().int().min(0).max(252),
-    atk: z.number().int().min(0).max(252),
-    def: z.number().int().min(0).max(252),
-    spa: z.number().int().min(0).max(252),
-    spd: z.number().int().min(0).max(252),
-    spe: z.number().int().min(0).max(252)
+    hp: z.number().int().min(0).max(maxStatPointsPerStat),
+    atk: z.number().int().min(0).max(maxStatPointsPerStat),
+    def: z.number().int().min(0).max(maxStatPointsPerStat),
+    spa: z.number().int().min(0).max(maxStatPointsPerStat),
+    spd: z.number().int().min(0).max(maxStatPointsPerStat),
+    spe: z.number().int().min(0).max(maxStatPointsPerStat)
   })
-  .strict();
+  .strict()
+  .superRefine((points, ctx) => {
+    const total = Object.values(points).reduce((sum, value) => sum + value, 0);
+    if (total > maxTotalStatPoints) {
+      ctx.addIssue({
+        code: "custom",
+        message: `A Pokemon cannot have more than ${maxTotalStatPoints} total Stat Points.`
+      });
+    }
+  });
 
-export const ivTableSchema = z
-  .object({
-    hp: z.number().int().min(0).max(31),
-    atk: z.number().int().min(0).max(31),
-    def: z.number().int().min(0).max(31),
-    spa: z.number().int().min(0).max(31),
-    spd: z.number().int().min(0).max(31),
-    spe: z.number().int().min(0).max(31)
-  })
-  .strict();
+export const defaultStatPoints = {
+  hp: 0,
+  atk: 0,
+  def: 0,
+  spa: 0,
+  spd: 0,
+  spe: 0
+} as const;
 
 export const statBoostsSchema = z
   .object({
@@ -173,10 +184,9 @@ export const pokemonSetSchema = z
     itemId: canonicalIdSchema.nullable().default(null),
     abilityId: canonicalIdSchema,
     moveIds: z.array(canonicalIdSchema).min(1).max(4),
-    nature: z.string().min(1).optional(),
+    statAlignment: z.string().min(1).default("Serious"),
     stats: statTableSchema,
-    evs: evTableSchema.optional(),
-    ivs: ivTableSchema.optional(),
+    statPoints: statPointTableSchema.default(defaultStatPoints),
     specialMechanic: specialMechanicSchema.optional(),
     moveKnowledge: moveKnowledgeSchema.optional()
   })
@@ -360,6 +370,7 @@ export type TargetSlot = z.infer<typeof targetSlotSchema>;
 export type StatusCondition = z.infer<typeof statusConditionSchema>;
 export type PokemonGender = z.infer<typeof pokemonGenderSchema>;
 export type StatTable = z.infer<typeof statTableSchema>;
+export type StatPointTable = z.infer<typeof statPointTableSchema>;
 export type StatBoosts = z.infer<typeof statBoostsSchema>;
 export type ExactHp = z.infer<typeof exactHpSchema>;
 export type PercentageHp = z.infer<typeof percentageHpSchema>;
@@ -373,3 +384,31 @@ export type TeamState = z.infer<typeof teamStateSchema>;
 export type FieldState = z.infer<typeof fieldStateSchema>;
 export type LegalAction = z.infer<typeof legalActionSchema>;
 export type BattleState = z.infer<typeof battleStateSchema>;
+
+export const fixedChampionsIvs: StatTable = {
+  hp: 31,
+  atk: 31,
+  def: 31,
+  spa: 31,
+  spd: 31,
+  spe: 31
+};
+
+// Standard stat libraries still accept legacy EV values. Champions gives the
+// first Stat Point at 4 EVs and each additional point for another 8 EVs.
+export function statPointsToLegacyEvs(points: StatPointTable): StatTable {
+  return Object.fromEntries(
+    statIds.map((stat) => [stat, points[stat] === 0 ? 0 : points[stat] * 8 - 4])
+  ) as StatTable;
+}
+
+// Team exports from standard formats can be imported without exposing EVs in
+// the domain model. The Stat Point schema enforces Champions' 32/66 limits.
+export function legacyEvsToStatPoints(evs: Partial<Record<(typeof statIds)[number], number>>): StatPointTable {
+  return statPointTableSchema.parse(Object.fromEntries(
+    statIds.map((stat) => {
+      const ev = Math.max(0, Math.min(252, evs[stat] ?? 0));
+      return [stat, ev < 4 ? 0 : Math.floor((ev + 4) / 8)];
+    })
+  ));
+}

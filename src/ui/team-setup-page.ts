@@ -43,6 +43,8 @@ export const teamSetupPage = String.raw`<!doctype html>
     .stat-grid { display: grid; grid-template-columns: repeat(6, minmax(52px, 1fr)); gap: 5px; margin-top: 8px; }
     .stat-pair { display: grid; gap: 5px; }
     .stat-pair input { min-height: 34px; padding: 5px; text-align: center; }
+    .stat-budget { margin-top: 7px; color: #46525d; font-size: 12px; font-weight: 750; }
+    .stat-budget.error { color: #a12622; }
     .team-summary { display: flex; flex-wrap: wrap; gap: 7px; padding: 12px 0 2px; }
     .summary-chip { border: 1px solid #a9bfd0; background: #eaf2f8; color: #224b69; border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 750; }
     .action-bar { position: sticky; bottom: 0; display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 14px; padding: 12px 0; background: rgba(237, 241, 244, .96); border-top: 1px solid #aeb8c2; }
@@ -234,8 +236,7 @@ export const teamSetupPage = String.raw`<!doctype html>
           field("Gender", select("player-gender-" + index, [["M", "Male"], ["F", "Female"], ["N", "Genderless"]], data ? data.gender : "M")),
           field("Ability", input("player-ability-" + index, "text", data ? data.abilityId : "", "ability-options")),
           field("Held item", input("player-item-" + index, "text", data ? data.itemId || "" : "", "item-options")),
-          field("Nature / stat alignment", select("player-nature-" + index, catalog.natures.map(function(nature) { return [nature, nature]; }), data ? data.nature : "Serious")),
-          field("Level", input("player-level-" + index, "number", data ? data.level : 50))
+          field("Stat Alignment", select("player-alignment-" + index, catalog.statAlignments.map(function(alignment) { return [alignment, alignment]; }), data ? data.statAlignment || data.nature : "Serious"))
         );
         card.append(heading, form);
 
@@ -246,20 +247,25 @@ export const teamSetupPage = String.raw`<!doctype html>
         card.appendChild(moves);
 
         var details = document.createElement("details");
-        details.appendChild(el("summary", "", "IVs and EVs"));
+        details.appendChild(el("summary", "", "Stat Points"));
         var stats = el("div", "stat-grid");
         statIds.forEach(function(stat) {
           var pair = el("div", "stat-pair");
-          var iv = input("player-iv-" + index + "-" + stat, "number", data ? data.ivs[stat] : 31);
-          iv.min = "0"; iv.max = "31";
-          var ev = input("player-ev-" + index + "-" + stat, "number", data ? data.evs[stat] : 0);
-          ev.min = "0"; ev.max = "252";
-          pair.append(field(stat.toUpperCase() + " IV", iv), field(stat.toUpperCase() + " EV", ev));
+          var points = input("player-sp-" + index + "-" + stat, "number", data && data.statPoints ? data.statPoints[stat] : 0);
+          points.min = "0"; points.max = "32";
+          points.addEventListener("input", function(event) {
+            updateStatPointBudget(Number(event.currentTarget.id.split("-")[2]));
+          });
+          pair.append(field(stat.toUpperCase() + " points", points));
           stats.appendChild(pair);
         });
         details.appendChild(stats);
+        var budget = el("div", "stat-budget");
+        budget.id = "player-sp-budget-" + index;
+        details.appendChild(budget);
         card.appendChild(details);
         grid.appendChild(card);
+        updateStatPointBudget(index);
       }
     }
 
@@ -269,10 +275,18 @@ export const teamSetupPage = String.raw`<!doctype html>
       return position === 0 ? "lead-left" : position === 1 ? "lead-right" : position === 2 ? "bench-1" : position === 3 ? "bench-2" : "";
     }
 
-    function readStats(index, kind) {
+    function readStatPoints(index) {
       return Object.fromEntries(statIds.map(function(stat) {
-        return [stat, Number(document.getElementById("player-" + kind + "-" + index + "-" + stat).value)];
+        return [stat, Number(document.getElementById("player-sp-" + index + "-" + stat).value)];
       }));
+    }
+
+    function updateStatPointBudget(index) {
+      var budget = document.getElementById("player-sp-budget-" + index);
+      if (!budget) return;
+      var total = Object.values(readStatPoints(index)).reduce(function(sum, value) { return sum + value; }, 0);
+      budget.textContent = total + " / 66 used · " + Math.max(0, 66 - total) + " remaining";
+      budget.className = "stat-budget" + (total > 66 ? " error" : "");
     }
 
     function readPlayerSetup() {
@@ -286,13 +300,11 @@ export const teamSetupPage = String.raw`<!doctype html>
           speciesId: speciesId,
           nickname: document.getElementById("player-nickname-" + index).value.trim() || undefined,
           gender: document.getElementById("player-gender-" + index).value,
-          level: Number(document.getElementById("player-level-" + index).value),
           abilityId: document.getElementById("player-ability-" + index).value.trim(),
           itemId: document.getElementById("player-item-" + index).value.trim() || null,
           moveIds: [0, 1, 2, 3].map(function(moveIndex) { return document.getElementById("player-move-" + index + "-" + moveIndex).value.trim(); }).filter(Boolean),
-          nature: document.getElementById("player-nature-" + index).value,
-          ivs: readStats(index, "iv"),
-          evs: readStats(index, "ev")
+          statAlignment: document.getElementById("player-alignment-" + index).value,
+          statPoints: readStatPoints(index)
         });
       }
       var roleOrder = ["lead-left", "lead-right", "bench-1", "bench-2"];

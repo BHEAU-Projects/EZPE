@@ -29,6 +29,8 @@ describe("Quick Capture server", () => {
     expect(setup.headers["content-type"]).toContain("text/html");
     expect(setup.body).toContain("EZPE Team Setup");
     expect(setup.body).toContain("Your Champions team");
+    expect(setup.body).toContain("Stat Points");
+    expect(setup.body).not.toContain("IVs and EVs");
     expect(battle.body).toContain("EZPE Quick Capture");
     expect(battle.body).toContain("Analyze turn");
     expect(health.json()).toEqual({ status: "ok", version: "0.1.0" });
@@ -43,13 +45,11 @@ describe("Quick Capture server", () => {
       speciesId: pokemon.set.speciesId,
       nickname: pokemon.set.displayName,
       gender: "M",
-      level: pokemon.set.level,
       abilityId: pokemon.set.abilityId,
       itemId: pokemon.set.itemId,
       moveIds: pokemon.set.moveIds,
-      nature: pokemon.set.nature ?? "Serious",
-      ivs: pokemon.set.ivs ?? { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
-      evs: pokemon.set.evs ?? { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }
+      statAlignment: pokemon.set.statAlignment,
+      statPoints: pokemon.set.statPoints
     }));
 
     const player = await server.inject({

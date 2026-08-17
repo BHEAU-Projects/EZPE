@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { PokemonSet, StatTable } from "../src/domain/battle-state.js";
+import type { PokemonSet } from "../src/domain/battle-state.js";
 import { singleTurnBattleState } from "../src/fixtures/single-turn-battle-state.js";
 import {
   playerTeamSetupSchema,
@@ -8,21 +8,16 @@ import {
   type PlayerTeamSetup
 } from "../src/setup/team-setup.js";
 
-const perfectIvs: StatTable = { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 };
-const emptyEvs: StatTable = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
-
 function playerPokemon(set: PokemonSet) {
   return {
     speciesId: set.speciesId,
     nickname: set.displayName,
     gender: "M" as const,
-    level: set.level,
     abilityId: set.abilityId,
     itemId: set.itemId,
     moveIds: [...set.moveIds],
-    nature: set.nature ?? "Serious",
-    ivs: set.ivs ?? perfectIvs,
-    evs: set.evs ?? emptyEvs
+    statAlignment: set.statAlignment,
+    statPoints: set.statPoints
   };
 }
 
@@ -38,13 +33,13 @@ function validPlayerSetup(): PlayerTeamSetup {
 }
 
 describe("team setup", () => {
-  it("validates EV totals and four unique battle positions", () => {
-    const tooManyEvs = validPlayerSetup();
-    tooManyEvs.pokemon[0].evs = { hp: 252, atk: 252, def: 252, spa: 0, spd: 0, spe: 0 };
+  it("validates Stat Point totals and four unique battle positions", () => {
+    const tooManyStatPoints = validPlayerSetup();
+    tooManyStatPoints.pokemon[0].statPoints = { hp: 32, atk: 32, def: 3, spa: 0, spd: 0, spe: 0 };
     const duplicatePositions = validPlayerSetup();
     duplicatePositions.battleOrder = [0, 0, 1, 2];
 
-    expect(playerTeamSetupSchema.safeParse(tooManyEvs).success).toBe(false);
+    expect(playerTeamSetupSchema.safeParse(tooManyStatPoints).success).toBe(false);
     expect(playerTeamSetupSchema.safeParse(duplicatePositions).success).toBe(false);
   });
 
@@ -80,9 +75,8 @@ describe("team setup", () => {
     ]);
     expect(state.teams.p2.active[0].set).toMatchObject({
       gender: "F",
-      nature: "Serious",
-      ivs: perfectIvs,
-      evs: emptyEvs,
+      statAlignment: "Serious",
+      statPoints: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
       moveKnowledge: {
         source: "fallback",
         observedMoveIds: [],

@@ -6,6 +6,7 @@ import {
   createSingleTurnSimulationInputFromBattleState,
   getShowdownFormatIdForRegulation,
   simulateSingleTurn,
+  toShowdownPokemonSet,
   toShowdownCurrentHp
 } from "../src/sim/showdown-adapter.js";
 
@@ -13,6 +14,21 @@ describe("showdown adapter", () => {
   it("maps known regulation ids to pinned Showdown format ids", () => {
     expect(getShowdownFormatIdForRegulation("development")).toBe("gen9championsdoublescustomgame");
     expect(getShowdownFormatIdForRegulation("champions-m-b")).toBe("gen9championsvgc2026regmb");
+  });
+
+  it("maps Champions Stat Points directly and fixes every IV at 31", () => {
+    const set = {
+      ...singleTurnBattleState.teams.p1.active[0].set,
+      statAlignment: "Modest",
+      statPoints: { hp: 1, atk: 0, def: 0, spa: 32, spd: 0, spe: 32 }
+    };
+
+    expect(toShowdownPokemonSet(set)).toMatchObject({
+      nature: "Modest",
+      evs: { hp: 1, atk: 0, def: 0, spa: 32, spd: 0, spe: 32 },
+      ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+      level: 50
+    });
   });
 
   it("builds a Showdown move choice from legal actions", () => {

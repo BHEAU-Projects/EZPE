@@ -4,13 +4,12 @@ import { pokemonDataService } from "../data/pokemon-data-service.js";
 import { getRegulationById } from "../data/regulations.js";
 import { usageMovesetStore } from "../data/usage-movesets.js";
 import {
-  evTableSchema,
-  ivTableSchema,
+  defaultStatPoints,
   pokemonGenderSchema,
   pokemonSetSchema,
+  statPointTableSchema,
   type BattleState,
-  type PokemonSet,
-  type StatTable
+  type PokemonSet
 } from "../domain/battle-state.js";
 import { createBattleStateFromTeams } from "../io/battle-state-file.js";
 
@@ -21,24 +20,14 @@ export const playerPokemonSetupSchema = z
     speciesId: readableIdSchema,
     nickname: z.string().trim().max(30).optional(),
     gender: pokemonGenderSchema,
-    level: z.number().int().min(1).max(100).default(50),
     abilityId: readableIdSchema,
     itemId: z.string().trim().max(80).nullable().default(null),
     moveIds: z.array(readableIdSchema).min(1).max(4),
-    nature: z.string().trim().min(1).max(30),
-    ivs: ivTableSchema,
-    evs: evTableSchema
+    statAlignment: z.string().trim().min(1).max(30),
+    statPoints: statPointTableSchema
   })
   .strict()
   .superRefine((pokemon, ctx) => {
-    const totalEvs = Object.values(pokemon.evs).reduce((sum, value) => sum + value, 0);
-    if (totalEvs > 510) {
-      ctx.addIssue({
-        code: "custom",
-        message: "A Pokemon cannot have more than 510 total EVs.",
-        path: ["evs"]
-      });
-    }
     if (new Set(pokemon.moveIds.map((move) => pokemonDataService.canonicalId(move))).size !== pokemon.moveIds.length) {
       ctx.addIssue({
         code: "custom",
@@ -170,19 +159,20 @@ function createPlayerSet(
   const speciesId = pokemonDataService.canonicalId(input.speciesId);
   const species = pokemonDataService.getSpecies(regulationId, speciesId);
   if (!species) throw new Error(`Unknown Pokemon '${input.speciesId}'.`);
+  const regulation = getRegulationById(regulationId);
+  if (!regulation) throw new Error(`Unknown regulation '${regulationId}'.`);
 
   const itemId = input.itemId ? pokemonDataService.canonicalId(input.itemId) : null;
   const baseSet = {
     speciesId: species.id,
     displayName: input.nickname || species.name,
     gender: input.gender,
-    level: input.level,
+    level: regulation.battleRules.level,
     itemId,
     abilityId: pokemonDataService.canonicalId(input.abilityId),
     moveIds: input.moveIds.map((move) => pokemonDataService.canonicalId(move)),
-    nature: input.nature,
-    ivs: input.ivs,
-    evs: input.evs
+    statAlignment: input.statAlignment,
+    statPoints: input.statPoints
   };
 
   return pokemonSetSchema.parse({
@@ -204,8 +194,6 @@ function createOpponentSet(
   const moveIds = popular?.moveIds ?? pokemonDataService.getFallbackMoveIds(regulationId, species.id);
   if (moveIds.length === 0) throw new Error(`No default moves are available for ${species.name}.`);
 
-  const ivs: StatTable = { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 };
-  const evs: StatTable = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
   const baseSet = {
     speciesId: species.id,
     displayName: species.name,
@@ -214,9 +202,8 @@ function createOpponentSet(
     itemId: null,
     abilityId: species.abilityIds[0],
     moveIds,
-    nature: "Serious",
-    ivs,
-    evs
+    statAlignment: "Serious",
+    statPoints: defaultStatPoints
   };
 
   return pokemonSetSchema.parse({

@@ -16,7 +16,8 @@ function stateWithBenchPokemon(): BattleState {
       itemId: null,
       abilityId: "runaway",
       moveIds: ["tackle", "protect"],
-      nature: "Serious",
+      statAlignment: "Serious",
+      statPoints: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
       stats: { hp: 100, atk: 60, def: 60, spa: 60, spd: 60, spe: 60 }
     },
     hp: { unit: "exact", current: 100, max: 100 },
