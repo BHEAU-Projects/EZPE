@@ -38,6 +38,22 @@ export function registerSetupRoutes(app: FastifyInstance, session: BattleSession
 
   app.post("/api/setup/opponent", async (request, reply) => {
     try {
+      return setup.setOpponentTeam(request.body);
+    } catch (error) {
+      return reply.code(400).send({ error: formatSetupError(error) });
+    }
+  });
+
+  app.post("/api/setup/selection", async (request, reply) => {
+    try {
+      return setup.setPlayerSelection(request.body);
+    } catch (error) {
+      return reply.code(400).send({ error: formatSetupError(error) });
+    }
+  });
+
+  app.post("/api/setup/start", async (request, reply) => {
+    try {
       const state = setup.createBattle(request.body);
       session.replaceState(state);
       return { state, next: "/battle" };

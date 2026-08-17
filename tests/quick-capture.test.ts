@@ -29,8 +29,10 @@ describe("Quick Capture server", () => {
     expect(setup.headers["content-type"]).toContain("text/html");
     expect(setup.body).toContain("EZPE Team Setup");
     expect(setup.body).toContain("Your Champions team");
+    expect(setup.body).toContain("Choose your four");
     expect(setup.body).toContain("Stat Points");
     expect(setup.body).not.toContain("IVs and EVs");
+    expect(setup.body).not.toContain("Nickname");
     expect(battle.body).toContain("EZPE Quick Capture");
     expect(battle.body).toContain("Analyze turn");
     expect(health.json()).toEqual({ status: "ok", version: "0.1.0" });
@@ -43,7 +45,6 @@ describe("Quick Capture server", () => {
       ...singleTurnBattleState.teams.p2.active
     ].map((pokemon) => ({
       speciesId: pokemon.set.speciesId,
-      nickname: pokemon.set.displayName,
       gender: "M",
       abilityId: pokemon.set.abilityId,
       itemId: pokemon.set.itemId,
@@ -55,7 +56,7 @@ describe("Quick Capture server", () => {
     const player = await server.inject({
       method: "POST",
       url: "/api/setup/player",
-      payload: { regulationId: "development", pokemon: team, battleOrder: [0, 1, 2, 3] }
+      payload: { regulationId: "development", pokemon: team }
     });
     const opponent = await server.inject({
       method: "POST",
@@ -66,14 +67,26 @@ describe("Quick Capture server", () => {
           { speciesId: "charmander", gender: "F" },
           { speciesId: "bulbasaur", gender: "M" },
           { speciesId: "pikachu", gender: "F" }
-        ],
-        leadOrder: [1, 0]
+        ]
       }
+    });
+    const selection = await server.inject({
+      method: "POST",
+      url: "/api/setup/selection",
+      payload: { battleOrder: [0, 1, 2, 3] }
+    });
+    const start = await server.inject({
+      method: "POST",
+      url: "/api/setup/start",
+      payload: { opponentLeadOrder: [1, 0] }
     });
 
     expect(player.statusCode).toBe(200);
     expect(opponent.statusCode).toBe(200);
-    expect(opponent.json()).toMatchObject({ next: "/battle" });
+    expect(opponent.json()).toMatchObject({ opponentConfigured: true, selectionConfigured: false });
+    expect(selection.statusCode).toBe(200);
+    expect(start.statusCode).toBe(200);
+    expect(start.json()).toMatchObject({ next: "/battle" });
     const state = await server.inject({ method: "GET", url: "/api/state" });
     expect(state.json().state.teams.p2.active).toMatchObject([
       { set: { speciesId: "charmander", gender: "F" } },

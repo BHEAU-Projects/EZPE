@@ -23,6 +23,8 @@ export function buildServer(initialState: BattleState): FastifyInstance {
   app.get("/setup", async (_request, reply) => reply.type("text/html; charset=utf-8").send(teamSetupPage));
   app.get("/setup/player", async (_request, reply) => reply.type("text/html; charset=utf-8").send(teamSetupPage));
   app.get("/setup/opponent", async (_request, reply) => reply.type("text/html; charset=utf-8").send(teamSetupPage));
+  app.get("/setup/selection", async (_request, reply) => reply.type("text/html; charset=utf-8").send(teamSetupPage));
+  app.get("/setup/leads", async (_request, reply) => reply.type("text/html; charset=utf-8").send(teamSetupPage));
   app.get("/battle", async (_request, reply) => reply.type("text/html; charset=utf-8").send(quickCapturePage));
   registerSetupRoutes(app, session);
   registerSessionRoutes(app, session);

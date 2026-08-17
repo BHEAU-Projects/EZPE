@@ -20,7 +20,7 @@ export const teamSetupPage = String.raw`<!doctype html>
     .brand { display: flex; align-items: baseline; gap: 12px; }
     .brand h1 { margin: 0; font-size: 22px; letter-spacing: 0; }
     .brand span { color: #c8d1d9; font-size: 13px; }
-    .step-nav { display: grid; grid-template-columns: repeat(3, minmax(92px, 1fr)); width: min(460px, 55vw); border: 1px solid #63717d; border-radius: 6px; overflow: hidden; }
+    .step-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); width: min(600px, 62vw); border: 1px solid #63717d; border-radius: 6px; overflow: hidden; }
     .step { min-height: 36px; display: grid; place-items: center; color: #c8d1d9; font-size: 12px; font-weight: 800; border-right: 1px solid #63717d; }
     .step:last-child { border-right: 0; }
     .step.active { background: #ffffff; color: #17202a; }
@@ -54,9 +54,9 @@ export const teamSetupPage = String.raw`<!doctype html>
     [hidden] { display: none !important; }
     @media (max-width: 1100px) { .team-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 760px) {
-      .app-header { align-items: start; padding: 11px 13px; }
+      .app-header { align-items: stretch; flex-direction: column; gap: 8px; padding: 11px 13px; }
       .brand span { display: none; }
-      .step-nav { width: min(330px, 68vw); }
+      .step-nav { width: 100%; }
       main { padding: 10px; }
       .page-heading { grid-template-columns: 1fr; }
       .team-grid { grid-template-columns: 1fr; }
@@ -77,13 +77,14 @@ export const teamSetupPage = String.raw`<!doctype html>
     <nav class="step-nav" aria-label="Setup progress">
       <div class="step" id="step-player">1. Your team</div>
       <div class="step" id="step-opponent">2. Opponent</div>
-      <div class="step" id="step-battle">3. Battle</div>
+      <div class="step" id="step-selection">3. Your four</div>
+      <div class="step" id="step-battle">4. Battle</div>
     </nav>
   </header>
   <main>
     <section id="player-view">
       <div class="page-heading">
-        <div><h2>Your Champions team</h2><p>Enter the complete build and assign the four-Pokémon battle order.</p></div>
+        <div><h2>Your Champions team</h2><p>Enter the complete build for each Pokémon on your roster.</p></div>
         <div class="field"><label for="regulation">Regulation</label><select id="regulation"></select></div>
       </div>
       <div class="team-grid" id="player-grid"></div>
@@ -94,14 +95,38 @@ export const teamSetupPage = String.raw`<!doctype html>
     </section>
     <section class="opponent" id="opponent-view" hidden>
       <div class="page-heading">
-        <div><h2>Opponent team preview</h2><p>Enter the visible species or battle form, gender, and the two opening positions.</p></div>
+        <div><h2>Opponent team preview</h2><p>Enter the species or battle form and gender shown after you queue.</p></div>
         <button id="edit-player">Edit your team</button>
       </div>
       <div class="team-summary" id="player-summary"></div>
       <div class="team-grid" id="opponent-grid"></div>
       <div class="action-bar">
         <div class="status" id="opponent-status" aria-live="polite"></div>
-        <div class="actions"><button id="back-player">Back</button><button class="primary" id="start-battle">Start battle</button></div>
+        <div class="actions"><button id="back-player">Back</button><button class="primary" id="save-opponent">Save opponent and continue</button></div>
+      </div>
+    </section>
+    <section id="selection-view" hidden>
+      <div class="page-heading">
+        <div><h2>Choose your four</h2><p>Assign your two leads and two reserve Pokémon for this battle.</p></div>
+        <button id="edit-opponent">Edit opponent</button>
+      </div>
+      <div class="team-summary" id="opponent-summary"></div>
+      <div class="team-grid" id="selection-grid"></div>
+      <div class="action-bar">
+        <div class="status" id="selection-status" aria-live="polite"></div>
+        <div class="actions"><button id="back-opponent">Back</button><button class="primary" id="save-selection">Confirm four</button></div>
+      </div>
+    </section>
+    <section class="opponent" id="leads-view" hidden>
+      <div class="page-heading">
+        <div><h2>Opponent leads</h2><p>As the battle opens, assign the two opposing Pokémon on the field.</p></div>
+        <button id="edit-selection">Edit your four</button>
+      </div>
+      <div class="team-summary" id="selected-summary"></div>
+      <div class="team-grid" id="leads-grid"></div>
+      <div class="action-bar">
+        <div class="status" id="leads-status" aria-live="polite"></div>
+        <div class="actions"><button id="back-selection">Back</button><button class="primary" id="start-battle">Open battle</button></div>
       </div>
     </section>
   </main>
@@ -117,6 +142,7 @@ export const teamSetupPage = String.raw`<!doctype html>
       ["lead-left", "Lead left"], ["lead-right", "Lead right"],
       ["bench-1", "Bench 1"], ["bench-2", "Bench 2"], ["", "Not brought"]
     ];
+    var leadRoles = [["lead-left", "Lead left"], ["lead-right", "Lead right"], ["", "Not active"]];
 
     function el(tag, className, text) {
       var node = document.createElement(tag);
@@ -221,9 +247,6 @@ export const teamSetupPage = String.raw`<!doctype html>
         var card = el("article", "pokemon-card");
         var heading = el("div", "card-heading");
         heading.append(el("h3", "", "Pokémon " + (index + 1)));
-        var roleDefault = index === 0 ? "lead-left" : index === 1 ? "lead-right" : index === 2 ? "bench-1" : index === 3 ? "bench-2" : "";
-        var savedRole = saved ? roleForIndex(saved.battleOrder, index) : roleDefault;
-        heading.append(field("Battle position", select("player-role-" + index, battleRoles, savedRole)));
 
         var form = el("div", "form-grid");
         var species = input("player-species-" + index, "text", data ? data.speciesId : "", "species-options");
@@ -232,7 +255,6 @@ export const teamSetupPage = String.raw`<!doctype html>
         });
         form.append(
           field("Species / battle form", species, "wide"),
-          field("Nickname", input("player-nickname-" + index, "text", data ? data.nickname || "" : "")),
           field("Gender", select("player-gender-" + index, [["M", "Male"], ["F", "Female"], ["N", "Genderless"]], data ? data.gender : "M")),
           field("Ability", input("player-ability-" + index, "text", data ? data.abilityId : "", "ability-options")),
           field("Held item", input("player-item-" + index, "text", data ? data.itemId || "" : "", "item-options")),
@@ -291,14 +313,11 @@ export const teamSetupPage = String.raw`<!doctype html>
 
     function readPlayerSetup() {
       var pokemon = [];
-      var sourceIndexes = [];
       for (var index = 0; index < 6; index += 1) {
         var speciesId = document.getElementById("player-species-" + index).value.trim();
         if (!speciesId) continue;
-        sourceIndexes.push(index);
         pokemon.push({
           speciesId: speciesId,
-          nickname: document.getElementById("player-nickname-" + index).value.trim() || undefined,
           gender: document.getElementById("player-gender-" + index).value,
           abilityId: document.getElementById("player-ability-" + index).value.trim(),
           itemId: document.getElementById("player-item-" + index).value.trim() || null,
@@ -307,12 +326,7 @@ export const teamSetupPage = String.raw`<!doctype html>
           statPoints: readStatPoints(index)
         });
       }
-      var roleOrder = ["lead-left", "lead-right", "bench-1", "bench-2"];
-      var battleOrder = roleOrder.map(function(role) {
-        var sourceIndex = sourceIndexes.find(function(index) { return document.getElementById("player-role-" + index).value === role; });
-        return sourceIndexes.indexOf(sourceIndex);
-      });
-      return { regulationId: document.getElementById("regulation").value, pokemon: pokemon, battleOrder: battleOrder };
+      return { regulationId: document.getElementById("regulation").value, pokemon: pokemon };
     }
 
     function renderOpponentCards(saved) {
@@ -323,9 +337,6 @@ export const teamSetupPage = String.raw`<!doctype html>
         var card = el("article", "pokemon-card");
         var heading = el("div", "card-heading");
         heading.append(el("h3", "", "Pokémon " + (index + 1)));
-        var defaultRole = index === 0 ? "lead-left" : index === 1 ? "lead-right" : "";
-        var savedRole = saved && saved.leadOrder ? (saved.leadOrder[0] === index ? "lead-left" : saved.leadOrder[1] === index ? "lead-right" : "") : defaultRole;
-        heading.append(field("Opening position", select("opponent-role-" + index, [["lead-left", "Lead left"], ["lead-right", "Lead right"], ["", "Unknown reserve"]], savedRole)));
         var form = el("div", "form-grid");
         var species = input("opponent-species-" + index, "text", data ? data.speciesId : "", "species-options");
         species.addEventListener("change", function(event) { applySpeciesDefaults("opponent", Number(event.currentTarget.id.split("-").pop())); });
@@ -340,30 +351,107 @@ export const teamSetupPage = String.raw`<!doctype html>
 
     function readOpponentSetup() {
       var pokemon = [];
-      var sourceIndexes = [];
       for (var index = 0; index < 6; index += 1) {
         var speciesId = document.getElementById("opponent-species-" + index).value.trim();
         if (!speciesId) continue;
-        sourceIndexes.push(index);
         pokemon.push({ speciesId: speciesId, gender: document.getElementById("opponent-gender-" + index).value });
       }
-      var leadOrder = ["lead-left", "lead-right"].map(function(role) {
-        var sourceIndex = sourceIndexes.find(function(index) { return document.getElementById("opponent-role-" + index).value === role; });
-        return sourceIndexes.indexOf(sourceIndex);
+      return { pokemon: pokemon };
+    }
+
+    function renderSelectionCards(saved) {
+      var grid = document.getElementById("selection-grid");
+      grid.replaceChildren();
+      var order = saved?.battleOrder || setupStatus.battleOrder;
+      setupStatus.playerPokemon.forEach(function(pokemon, index) {
+        var card = el("article", "pokemon-card");
+        card.appendChild(el("h3", "", pokemon.displayName || pokemon.speciesId));
+        var fallbackRole = index === 0 ? "lead-left" : index === 1 ? "lead-right" : index === 2 ? "bench-1" : index === 3 ? "bench-2" : "";
+        card.appendChild(field("Battle position", select("selection-role-" + index, battleRoles, order ? roleForIndex(order, index) : fallbackRole)));
+        grid.appendChild(card);
       });
-      return { pokemon: pokemon, leadOrder: leadOrder };
+    }
+
+    function readPlayerSelection() {
+      return {
+        battleOrder: ["lead-left", "lead-right", "bench-1", "bench-2"].map(function(role) {
+          return setupStatus.playerPokemon.findIndex(function(_pokemon, index) {
+            return document.getElementById("selection-role-" + index).value === role;
+          });
+        })
+      };
+    }
+
+    function renderLeadCards(saved) {
+      var grid = document.getElementById("leads-grid");
+      grid.replaceChildren();
+      var order = saved?.opponentLeadOrder;
+      setupStatus.opponentPokemon.forEach(function(pokemon, index) {
+        var card = el("article", "pokemon-card");
+        card.appendChild(el("h3", "", pokemon.displayName || pokemon.speciesId));
+        var fallbackRole = index === 0 ? "lead-left" : index === 1 ? "lead-right" : "";
+        card.appendChild(field("Opening position", select("lead-role-" + index, leadRoles, order ? roleForIndex(order, index) : fallbackRole)));
+        grid.appendChild(card);
+      });
+    }
+
+    function readOpponentLeads() {
+      return {
+        opponentLeadOrder: ["lead-left", "lead-right"].map(function(role) {
+          return setupStatus.opponentPokemon.findIndex(function(_pokemon, index) {
+            return document.getElementById("lead-role-" + index).value === role;
+          });
+        })
+      };
+    }
+
+    function renderSummary(id, pokemon, indexes) {
+      var summary = document.getElementById(id);
+      summary.replaceChildren();
+      var selected = indexes ? indexes.map(function(index) { return pokemon[index]; }).filter(Boolean) : pokemon;
+      selected.forEach(function(member) {
+        var gender = member.gender ? " (" + member.gender + ")" : "";
+        summary.appendChild(el("span", "summary-chip", (member.displayName || member.speciesId) + gender));
+      });
+    }
+
+    function renderSetupState(savedSelection, savedLeads) {
+      renderSummary("player-summary", setupStatus.playerPokemon);
+      renderSummary("opponent-summary", setupStatus.opponentPokemon);
+      renderSummary("selected-summary", setupStatus.playerPokemon, setupStatus.battleOrder || savedSelection?.battleOrder);
+      renderSelectionCards(savedSelection);
+      renderLeadCards(savedLeads);
     }
 
     function showStep(step) {
-      var opponent = step === "opponent";
-      document.getElementById("player-view").hidden = opponent;
-      document.getElementById("opponent-view").hidden = !opponent;
-      document.getElementById("step-player").className = "step " + (opponent ? "done" : "active");
-      document.getElementById("step-opponent").className = "step " + (opponent ? "active" : "");
-      document.getElementById("step-battle").className = "step";
+      var steps = ["player", "opponent", "selection", "leads"];
+      var current = steps.indexOf(step);
+      steps.forEach(function(name, index) {
+        document.getElementById(name + "-view").hidden = name !== step;
+        var navId = name === "leads" ? "battle" : name;
+        document.getElementById("step-" + navId).className = "step " + (index < current ? "done" : index === current ? "active" : "");
+      });
     }
 
-    function goPlayer() { history.pushState({}, "", "/setup/player"); showStep("player"); }
+    function allowedStep(step) {
+      if (step !== "player" && !setupStatus.playerConfigured) return "player";
+      if ((step === "selection" || step === "leads") && !setupStatus.opponentConfigured) return "opponent";
+      if (step === "leads" && !setupStatus.selectionConfigured) return "selection";
+      return step;
+    }
+
+    function stepFromPath() {
+      if (location.pathname.includes("/leads")) return "leads";
+      if (location.pathname.includes("/selection")) return "selection";
+      if (location.pathname.includes("/opponent")) return "opponent";
+      return "player";
+    }
+
+    function routeTo(step, replace) {
+      var path = "/setup/" + step;
+      history[replace ? "replaceState" : "pushState"]({}, "", path);
+      showStep(step);
+    }
 
     document.getElementById("save-player").addEventListener("click", async function(event) {
       var button = event.currentTarget;
@@ -371,44 +459,74 @@ export const teamSetupPage = String.raw`<!doctype html>
       setStatus("player-status", "Validating team...");
       try {
         var payload = readPlayerSetup();
-        await api("/api/setup/player", { method: "POST", body: JSON.stringify(payload) });
+        setupStatus = await api("/api/setup/player", { method: "POST", body: JSON.stringify(payload) });
         localStorage.setItem("ezpe-player-team", JSON.stringify(payload));
-        setupStatus = await api("/api/setup/status");
-        renderPlayerSummary();
-        history.pushState({}, "", "/setup/opponent");
-        showStep("opponent");
+        renderSetupState(null, null);
+        routeTo("opponent");
         setStatus("opponent-status", "Ready for team preview.");
       } catch (error) {
         setStatus("player-status", error.message, true);
       } finally { button.disabled = false; }
     });
 
+    document.getElementById("save-opponent").addEventListener("click", async function(event) {
+      var button = event.currentTarget;
+      button.disabled = true;
+      setStatus("opponent-status", "Validating opponent roster...");
+      try {
+        var payload = readOpponentSetup();
+        setupStatus = await api("/api/setup/opponent", { method: "POST", body: JSON.stringify(payload) });
+        localStorage.setItem("ezpe-opponent-team", JSON.stringify(payload));
+        renderSetupState(null, null);
+        routeTo("selection");
+        setStatus("selection-status", "Choose your battle order.");
+      } catch (error) {
+        setStatus("opponent-status", error.message, true);
+      } finally { button.disabled = false; }
+    });
+
+    document.getElementById("save-selection").addEventListener("click", async function(event) {
+      var button = event.currentTarget;
+      button.disabled = true;
+      setStatus("selection-status", "Saving your four...");
+      try {
+        var payload = readPlayerSelection();
+        setupStatus = await api("/api/setup/selection", { method: "POST", body: JSON.stringify(payload) });
+        localStorage.setItem("ezpe-player-selection", JSON.stringify(payload));
+        renderSetupState(payload, readStored("ezpe-opponent-leads"));
+        routeTo("leads");
+        setStatus("leads-status", "Ready for the opening matchup.");
+      } catch (error) {
+        setStatus("selection-status", error.message, true);
+      } finally { button.disabled = false; }
+    });
+
     document.getElementById("start-battle").addEventListener("click", async function(event) {
       var button = event.currentTarget;
       button.disabled = true;
-      setStatus("opponent-status", "Building battle state...");
+      setStatus("leads-status", "Building battle state...");
       try {
-        var payload = readOpponentSetup();
-        await api("/api/setup/opponent", { method: "POST", body: JSON.stringify(payload) });
-        localStorage.setItem("ezpe-opponent-team", JSON.stringify(payload));
+        var payload = readOpponentLeads();
+        await api("/api/setup/start", { method: "POST", body: JSON.stringify(payload) });
+        localStorage.setItem("ezpe-opponent-leads", JSON.stringify(payload));
         window.location.href = "/battle";
       } catch (error) {
-        setStatus("opponent-status", error.message, true);
+        setStatus("leads-status", error.message, true);
         button.disabled = false;
       }
     });
 
-    function renderPlayerSummary() {
-      var summary = document.getElementById("player-summary");
-      summary.replaceChildren();
-      setupStatus.playerPokemon.forEach(function(pokemon) {
-        summary.appendChild(el("span", "summary-chip", pokemon.displayName || pokemon.speciesId));
-      });
-    }
-
-    document.getElementById("edit-player").addEventListener("click", goPlayer);
-    document.getElementById("back-player").addEventListener("click", goPlayer);
-    window.addEventListener("popstate", function() { showStep(location.pathname.includes("opponent") ? "opponent" : "player"); });
+    document.getElementById("edit-player").addEventListener("click", function() { routeTo("player"); });
+    document.getElementById("back-player").addEventListener("click", function() { routeTo("player"); });
+    document.getElementById("edit-opponent").addEventListener("click", function() { routeTo("opponent"); });
+    document.getElementById("back-opponent").addEventListener("click", function() { routeTo("opponent"); });
+    document.getElementById("edit-selection").addEventListener("click", function() { routeTo("selection"); });
+    document.getElementById("back-selection").addEventListener("click", function() { routeTo("selection"); });
+    window.addEventListener("popstate", function() {
+      var requested = allowedStep(stepFromPath());
+      if (requested !== stepFromPath()) routeTo(requested, true);
+      else showStep(requested);
+    });
 
     Promise.all([
       api("/api/setup/status"),
@@ -418,6 +536,8 @@ export const teamSetupPage = String.raw`<!doctype html>
       catalog = results[1];
       var savedPlayer = readStored("ezpe-player-team");
       var savedOpponent = readStored("ezpe-opponent-team");
+      var savedSelection = readStored("ezpe-player-selection") || (savedPlayer?.battleOrder ? { battleOrder: savedPlayer.battleOrder } : null);
+      var savedLeads = readStored("ezpe-opponent-leads") || (savedOpponent?.leadOrder ? { opponentLeadOrder: savedOpponent.leadOrder } : null);
       var regulation = document.getElementById("regulation");
       catalog.regulations.forEach(function(entry) {
         var option = el("option", "", entry.name);
@@ -431,13 +551,10 @@ export const teamSetupPage = String.raw`<!doctype html>
       populateDatalist("move-options", catalog.moves);
       renderPlayerCards(savedPlayer);
       renderOpponentCards(savedOpponent);
-      renderPlayerSummary();
-      var wantsOpponent = location.pathname.includes("opponent");
-      if (wantsOpponent && !setupStatus.playerConfigured) {
-        history.replaceState({}, "", "/setup/player");
-        wantsOpponent = false;
-      }
-      showStep(wantsOpponent ? "opponent" : "player");
+      renderSetupState(savedSelection, savedLeads);
+      var requested = allowedStep(stepFromPath());
+      if (requested !== stepFromPath()) routeTo(requested, true);
+      else showStep(requested);
     }).catch(function(error) {
       setStatus("player-status", error.message, true);
     });

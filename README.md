@@ -53,19 +53,20 @@ Start the local screen with sample data:
 npm run dev
 ```
 
-Then open `http://127.0.0.1:4173`. The first page records your six-Pokemon
-preview roster, full build details, and the four Pokemon selected for battle. The
-second page records the opposing preview roster and two expected leads. Starting
-the battle opens the live-turn screen at `http://127.0.0.1:4173/battle`.
+Then open `http://127.0.0.1:4173`. Setup follows the order information becomes
+available in Champions: save your full roster, enter the opposing preview roster
+after queueing, choose your four Pokemon, then record the two opposing leads as
+the battle opens. The live-turn screen is at `http://127.0.0.1:4173/battle`.
 
-Your roster stores species or battle-relevant form, gender, nickname, Ability,
-item, Stat Alignment, moves, and the six Champions Stat Point values. Champions
+Your roster stores species or battle-relevant form, gender, Ability, item, Stat
+Alignment, moves, and the six Champions Stat Point values. Champions
 battles are level 50, so the app fixes the level and calculates battle stats from
 those inputs. Each stat accepts 0-32 Stat Points, with a 66-point total limit.
 IVs are fixed internally at their maximum equivalent and are not user inputs. The
 opponent setup only needs species or form and gender; hidden Abilities, stats, and
-moves use neutral or local usage-based assumptions until observations in battle
-replace them.
+moves use local assumptions until observations in battle replace them. Opponent
+Stat Points are generated internally from the assumed move categories and are
+never requested from the user.
 
 ## Champions Stat Model
 
