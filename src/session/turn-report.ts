@@ -89,23 +89,68 @@ export const turnReportSchema = z
     addDuplicateSlotIssue(report.hp.map((observation) => observation.slot), "hp", ctx);
   });
 
+export const replacementSelectionSchema = z
+  .object({
+    side: z.enum(["p1", "p2"]),
+    activeSlot: activeSlotSchema,
+    speciesId: canonicalIdSchema
+  })
+  .strict()
+  .superRefine((selection, ctx) => {
+    if (!selection.activeSlot.startsWith(selection.side)) {
+      ctx.addIssue({ code: "custom", message: "Replacement slot must belong to its side.", path: ["activeSlot"] });
+    }
+  });
+
+export const replacementSubmissionSchema = z
+  .object({
+    replacements: z.array(replacementSelectionSchema).min(1).max(4),
+    ranking: z
+      .object({
+        top: z.number().int().min(1).max(10).default(3),
+        maxOpponentPlans: z.number().int().min(1).max(24).default(4)
+      })
+      .strict()
+      .default({ top: 3, maxOpponentPlans: 4 })
+  })
+  .strict()
+  .superRefine((submission, ctx) => {
+    addDuplicateSlotIssue(submission.replacements.map((replacement) => replacement.activeSlot), "replacements", ctx);
+    const species = submission.replacements.map((replacement) => `${replacement.side}:${replacement.speciesId}`);
+    if (new Set(species).size !== species.length) {
+      ctx.addIssue({ code: "custom", message: "The same Pokemon cannot fill two active slots.", path: ["replacements"] });
+    }
+  });
+
 export type ObservedAction = z.infer<typeof observedActionSchema>;
 export type ObservedHp = z.infer<typeof observedHpSchema>;
 export type ConfirmedEffect = z.infer<typeof confirmedEffectSchema>;
 export type TurnReport = z.infer<typeof turnReportSchema>;
+export type ReplacementSelection = z.infer<typeof replacementSelectionSchema>;
+export type ReplacementSubmission = z.infer<typeof replacementSubmissionSchema>;
 
 export interface TurnResolution {
   phase: "ready" | "replacement-required" | "battle-over";
   turnNumber: number;
   state: BattleState;
-  report: TurnReport;
+  report?: TurnReport;
   replacementRequests: ReplacementRequest[];
+  winner?: PlayerSide | null;
 }
 
 export interface ReplacementRequest {
   side: PlayerSide;
   activeSlot: ActivePokemon["slot"];
-  choices: Array<{ benchSlot: number; speciesId: string; displayName: string }>;
+  choices: ReplacementChoice[];
+}
+
+export interface ReplacementChoice {
+  id: string;
+  source: "bench" | "preview";
+  benchSlot?: number;
+  previewIndex?: number;
+  speciesId: string;
+  displayName: string;
 }
 
 export interface AppliedTurnReport {

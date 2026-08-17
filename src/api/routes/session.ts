@@ -3,7 +3,7 @@ import type { FastifyInstance } from "fastify";
 
 import type { BattleSession } from "../../session/battle-session.js";
 import { battleEventSchema } from "../../session/battle-events.js";
-import { turnReportSchema } from "../../session/turn-report.js";
+import { replacementSubmissionSchema, turnReportSchema } from "../../session/turn-report.js";
 import { observedActionSchema } from "../../session/turn-report.js";
 import { suggestTurnEffects } from "../../session/turn-effects.js";
 import { AdvicePresenter, presentPlayerMovePp } from "../../advisor/advice-presenter.js";
@@ -45,12 +45,31 @@ export function registerSessionRoutes(app: FastifyInstance, session: BattleSessi
 
     try {
       const resolution = session.applyTurn(report.data);
-      const advice = rankPayload(session, report.data.ranking.top, report.data.ranking.maxOpponentPlans);
-      return {
-        ...resolution,
-        playerMovePp: presentPlayerMovePp(resolution.state),
-        advice
-      };
+      return resolutionPayload(
+        session,
+        resolution,
+        report.data.ranking.top,
+        report.data.ranking.maxOpponentPlans
+      );
+    } catch (error) {
+      return reply.code(400).send({ error: formatError(error) });
+    }
+  });
+
+  app.post("/api/replacements", async (request, reply) => {
+    const submission = replacementSubmissionSchema.safeParse(request.body);
+    if (!submission.success) {
+      return reply.code(400).send({ error: "Invalid replacement selections.", issues: submission.error.issues });
+    }
+
+    try {
+      const resolution = session.applyReplacements(submission.data);
+      return resolutionPayload(
+        session,
+        resolution,
+        submission.data.ranking.top,
+        submission.data.ranking.maxOpponentPlans
+      );
     } catch (error) {
       return reply.code(400).send({ error: formatError(error) });
     }
@@ -102,11 +121,27 @@ function rankPayload(session: BattleSession, top: number, maxOpponentPlans: numb
   };
 }
 
+function resolutionPayload(
+  session: BattleSession,
+  resolution: ReturnType<BattleSession["applyTurn"]>,
+  top: number,
+  maxOpponentPlans: number
+) {
+  return {
+    ...resolution,
+    playerMovePp: presentPlayerMovePp(resolution.state),
+    advice: resolution.phase === "ready"
+      ? rankPayload(session, top, maxOpponentPlans)
+      : null
+  };
+}
+
 function statePayload(session: BattleSession) {
   const state = session.getState();
   return {
     state,
-    playerMovePp: presentPlayerMovePp(state)
+    playerMovePp: presentPlayerMovePp(state),
+    replacementRequests: session.getReplacementRequests()
   };
 }
 
