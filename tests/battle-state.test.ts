@@ -52,7 +52,8 @@ const validBattleState: BattleState = {
             evasion: 0
           },
           volatileEffectIds: [],
-          protectedThisTurn: false
+          protectedThisTurn: false,
+          protectStreak: 0
         },
         {
           slot: "p1b",
@@ -79,7 +80,8 @@ const validBattleState: BattleState = {
             evasion: 0
           },
           volatileEffectIds: [],
-          protectedThisTurn: false
+          protectedThisTurn: false,
+          protectStreak: 0
         }
       ],
       bench: [],
@@ -123,7 +125,8 @@ const validBattleState: BattleState = {
             evasion: 0
           },
           volatileEffectIds: [],
-          protectedThisTurn: false
+          protectedThisTurn: false,
+          protectStreak: 0
         }
       ],
       bench: [],

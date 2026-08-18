@@ -80,7 +80,17 @@ export function rankMoves(battleState: BattleState, input: RankMovesInput): Advi
     };
   });
 
-  const sortedResults = scoredResults.sort((a, b) => b.score - a.score);
+  const bestResultByPlan = new Map<string, (typeof scoredResults)[number]>();
+  for (const result of scoredResults) {
+    const key = semanticPlanKey(result.actionPlan);
+    const existing = bestResultByPlan.get(key);
+    if (!existing || result.score > existing.score || (
+      result.score === existing.score && specialMechanicCount(result.actionPlan) < specialMechanicCount(existing.actionPlan)
+    )) {
+      bestResultByPlan.set(key, result);
+    }
+  }
+  const sortedResults = [...bestResultByPlan.values()].sort((a, b) => b.score - a.score);
 
   return sortedResults.map((result, index) => {
     const nextBestScore = sortedResults[index + 1]?.score ?? result.score;
@@ -263,6 +273,17 @@ function formatActionId(action: LegalAction): string {
   }
 
   return `${action.activeSlot}:move:${action.moveId}:${action.targetSlot}:${action.specialMechanic?.kind ?? "standard"}`;
+}
+
+function semanticPlanKey(plan: ActionPlan): string {
+  return plan.actions.map((action) => action.type === "switch"
+    ? `${action.activeSlot}:switch:${action.speciesId}:${action.benchSlot}`
+    : `${action.activeSlot}:move:${action.moveId}:${action.targetSlot}`
+  ).join("|");
+}
+
+function specialMechanicCount(plan: ActionPlan): number {
+  return plan.actions.filter((action) => action.type === "move" && action.specialMechanic).length;
 }
 
 function isValidCombinedPlan(actions: LegalAction[]): boolean {

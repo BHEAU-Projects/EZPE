@@ -38,6 +38,8 @@ describe("advice presentation", () => {
     expect(actions[0]).toMatchObject({
       actorSpecies: "Pikachu",
       moveName: "Thunderbolt",
+      moveType: "electric",
+      moveSource: "known",
       targetSpecies: "Squirtle",
       damage: {
         accuracyPercent: 100,
@@ -55,6 +57,57 @@ describe("advice presentation", () => {
       moveName: "Tackle",
       targetSpecies: "Charmander"
     });
+  });
+
+  it("reports spread damage separately for every affected Pokemon", () => {
+    const state = structuredClone(singleTurnBattleState);
+    state.teams.p1.active[0].set.moveIds = ["earthquake", "protect"];
+    const actions: ActionPlan["actions"] = [
+      { type: "move", activeSlot: "p1a", moveId: "earthquake", targetSlot: "field", flags: {} },
+      { type: "move", activeSlot: "p1b", moveId: "protect", targetSlot: "self", flags: {} }
+    ];
+    const plan: ActionPlan = {
+      id: "spread-plan",
+      side: "p1",
+      actions,
+      showdownChoice: buildShowdownChoiceFromLegalActions(actions, "p1")
+    };
+
+    const earthquake = new AdvicePresenter(state).presentPlan(plan)[0];
+    expect(earthquake.targetDamages).toHaveLength(3);
+    expect(earthquake.targetDamages?.map((target) => target.targetSpecies)).toEqual(
+      expect.arrayContaining(["Bulbasaur", "Squirtle", "Charmander"])
+    );
+    expect(earthquake.targetDamages?.every((target) => target.damage.expectedDamage > 0)).toBe(true);
+  });
+
+  it("labels opponent moves as confirmed or predicted", () => {
+    const state = structuredClone(singleTurnBattleState);
+    state.teams.p2.active[0].set.moveKnowledge = {
+      source: "usage-default",
+      observedMoveIds: ["tackle"],
+      assumedMoveIds: ["protect"]
+    };
+    state.teams.p2.active[1].set.moveKnowledge = {
+      source: "usage-default",
+      observedMoveIds: [],
+      assumedMoveIds: ["scratch", "protect"]
+    };
+    const actions: ActionPlan["actions"] = [
+      { type: "move", activeSlot: "p2a", moveId: "tackle", targetSlot: "p1a", flags: {} },
+      { type: "move", activeSlot: "p2b", moveId: "scratch", targetSlot: "p1b", flags: {} }
+    ];
+    const plan: ActionPlan = {
+      id: "opponent-plan",
+      side: "p2",
+      actions,
+      showdownChoice: buildShowdownChoiceFromLegalActions(actions, "p2")
+    };
+
+    expect(new AdvicePresenter(state).presentPlan(plan)).toMatchObject([
+      { moveName: "Tackle", moveType: "normal", moveSource: "confirmed" },
+      { moveName: "Scratch", moveType: "normal", moveSource: "predicted" }
+    ]);
   });
 
   it("includes misses and critical-hit probability in estimates", () => {

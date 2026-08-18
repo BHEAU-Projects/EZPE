@@ -4,6 +4,7 @@ import { singleTurnBattleState, singleTurnChoices } from "../src/fixtures/single
 import {
   buildShowdownChoiceFromLegalActions,
   createSingleTurnSimulationInputFromBattleState,
+  createHydratedBattleFromState,
   getShowdownFormatIdForRegulation,
   simulateSingleTurn,
   toShowdownPokemonSet,
@@ -124,6 +125,18 @@ describe("showdown adapter", () => {
       volatileEffectIds: ["focusenergy"]
     });
     expect(result.turn).toBe(4);
+  });
+
+  it("hydrates Showdown's consecutive Protect counter", () => {
+    const state = structuredClone(singleTurnBattleState);
+    state.teams.p1.active[0].protectStreak = 1;
+    const battle = createHydratedBattleFromState(state);
+
+    try {
+      expect(battle.p1.active[0].volatiles.stall).toMatchObject({ counter: 3 });
+    } finally {
+      battle.destroy();
+    }
   });
 
   it("applies hydrated side conditions to turn mechanics", () => {

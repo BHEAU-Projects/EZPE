@@ -48,6 +48,7 @@ export interface EffectSuggestion {
 interface MoveEffectData {
   name: string;
   accuracy: number | true;
+  stallingMove?: boolean;
   status?: string;
   boosts?: Partial<StatBoosts>;
   self?: { boosts?: Partial<StatBoosts> };
@@ -89,6 +90,7 @@ export function applyAutomaticTurnEffects(
     nextState.field = fieldFromShowdownSummary(summary);
     nextState.teams.p1.sideConditions = sideConditionsFromShowdownSummary(summary.sideConditions.p1);
     nextState.teams.p2.sideConditions = sideConditionsFromShowdownSummary(summary.sideConditions.p2);
+    updateProtectStreaks(beforeTurn, nextState, report, battle);
     return battleStateSchema.parse(nextState);
   } finally {
     battle.destroy();
@@ -107,6 +109,17 @@ export function suggestTurnEffects(
     const move = dex.moves.get(action.moveId) as unknown as MoveEffectData;
     const targetSlots = resolveEffectTargetSlots(state, action);
     const hitChance = move.accuracy === true ? 100 : move.accuracy;
+
+    const previousProtectStreak = findActive(state, action.activeSlot)?.protectStreak ?? 0;
+    if (move.stallingMove && previousProtectStreak > 0) {
+      const successChance = 100 / (3 ** previousProtectStreak);
+      suggestions.push({
+        id: `${action.activeSlot}:${action.moveId}:failed`,
+        label: `${move.name} failed`,
+        chancePercent: 100 - successChance,
+        effect: { kind: "move-result", slot: action.activeSlot, result: "failed" }
+      });
+    }
 
     if (move.accuracy !== true && move.accuracy < 100) {
       suggestions.push({
@@ -160,6 +173,39 @@ export function suggestTurnEffects(
   }
 
   return uniqueSuggestions(suggestions);
+}
+
+function updateProtectStreaks(
+  beforeTurn: BattleState,
+  nextState: BattleState,
+  report: TurnReport,
+  battle: ReturnType<typeof createHydratedBattleFromState>
+): void {
+  const failedSlots = new Set(
+    report.confirmedEffects.flatMap((effect) =>
+      effect.kind === "move-result" && ["missed", "failed", "blocked"].includes(effect.result)
+        ? [effect.slot]
+        : []
+    )
+  );
+
+  for (const side of ["p1", "p2"] as const) {
+    for (const pokemon of nextState.teams[side].active) {
+      const action = report.actions.find((candidate) => candidate.activeSlot === pokemon.slot);
+      const previous = beforeTurn.teams[side].active.find((candidate) => candidate.slot === pokemon.slot);
+      const samePokemon = previous?.set.speciesId === pokemon.set.speciesId;
+
+      if (action?.type !== "move" || !samePokemon || failedSlots.has(pokemon.slot)) {
+        pokemon.protectStreak = 0;
+        continue;
+      }
+
+      const move = battle.dex.moves.get(action.moveId) as unknown as MoveEffectData;
+      pokemon.protectStreak = move.stallingMove
+        ? Math.min(6, (previous?.protectStreak ?? 0) + 1)
+        : 0;
+    }
+  }
 }
 
 function applyTimedMoveEffects(

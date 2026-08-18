@@ -178,6 +178,17 @@ function hydratePokemon(battle: Battle, state: BattleState): void {
             duration: condition.duration
           });
         }
+
+        if (observed.protectStreak > 0) {
+          const stall = battle.dex.conditions.get("stall");
+          const stallState = battle.initEffectState({
+            id: stall.id,
+            target: pokemon,
+            duration: stall.duration
+          });
+          stallState.counter = Math.min(stall.counterMax ?? 729, 3 ** observed.protectStreak);
+          pokemon.volatiles[stall.id] = stallState;
+        }
       }
     });
 

@@ -93,6 +93,17 @@ describe("automatic timed effects", () => {
     expect(tailwind.teams.p1.sideConditions.tailwindTurns).toBe(3);
     expect(rocks.teams.p2.sideConditions.stealthRock).toBe(true);
     expect(expiring.field).toMatchObject({ weather: null, weatherTurnsRemaining: 0 });
+    expect(expiring.teams.p1.active[0].protectStreak).toBe(1);
+  });
+
+  it("resets a consecutive protection streak when the move visibly fails", () => {
+    const state = structuredClone(singleTurnBattleState);
+    state.teams.p1.active[0].protectStreak = 1;
+    const report = reportWithMove(state, "p1a", "protect", "self");
+    report.confirmedEffects.push({ kind: "move-result", slot: "p1a", result: "failed" });
+
+    const next = createBattleSession(state).applyTurn(report).state;
+    expect(next.teams.p1.active[0].protectStreak).toBe(0);
   });
 
   it("does not apply a field effect marked as missed or failed", () => {
@@ -106,6 +117,21 @@ describe("automatic timed effects", () => {
 });
 
 describe("contextual effect suggestions", () => {
+  it("offers a one-tap failure outcome for consecutive Protect attempts", () => {
+    const state = structuredClone(singleTurnBattleState);
+    state.teams.p1.active[0].protectStreak = 1;
+
+    const suggestions = suggestTurnEffects(state, [
+      { type: "move", activeSlot: "p1a", moveId: "protect", targetSlot: "self" }
+    ]);
+
+    expect(suggestions).toContainEqual(expect.objectContaining({
+      label: "Protect failed",
+      chancePercent: expect.closeTo(200 / 3),
+      effect: { kind: "move-result", slot: "p1a", result: "failed" }
+    }));
+  });
+
   it("describes misses, status chances, flinches, and spread stat changes from Showdown data", () => {
     const state = structuredClone(singleTurnBattleState);
     const suggestions = suggestTurnEffects(state, [

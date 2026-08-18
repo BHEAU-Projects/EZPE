@@ -406,7 +406,8 @@ function normalizeBattleStateForShowdown(battleState: BattleState): BattleState 
       status: "healthy",
       boosts: { atk: 0, def: 0, spa: 0, spd: 0, spe: 0, accuracy: 0, evasion: 0 },
       volatileEffectIds: [],
-      protectedThisTurn: false
+      protectedThisTurn: false,
+      protectStreak: 0
     });
     team.active.sort((a, b) => a.slot.localeCompare(b.slot));
   }

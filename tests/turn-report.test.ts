@@ -90,6 +90,31 @@ describe("atomic turn application", () => {
     expect(session.getSnapshots()).toEqual([singleTurnBattleState]);
   });
 
+  it("applies ending HP to the incoming Pokemon after an observed switch", () => {
+    const state = structuredClone(singleTurnBattleState);
+    const incomingSet = structuredClone(state.teams.p2.active[0].set);
+    state.teams.p1.bench = [{
+      benchSlot: 0,
+      set: incomingSet,
+      hp: { unit: "exact", current: 88, max: incomingSet.stats.hp },
+      status: "healthy",
+      fainted: false
+    }];
+    const report = validTurnReport();
+    report.actions[0] = { type: "switch", activeSlot: "p1a", benchSlot: 0 };
+    report.hp[0] = { slot: "p1a", remainingHp: { unit: "exact", current: 77 } };
+
+    const resolution = createBattleSession(state).applyTurn(report);
+    expect(resolution.state.teams.p1.active[0]).toMatchObject({
+      set: { speciesId: "squirtle" },
+      hp: { unit: "exact", current: 77, max: incomingSet.stats.hp }
+    });
+    expect(resolution.state.teams.p1.bench[0]).toMatchObject({
+      set: { speciesId: "pikachu" },
+      hp: { unit: "exact", current: 110, max: 110 }
+    });
+  });
+
   it("rejects a stale turn report without changing state", () => {
     const session = createBattleSession(singleTurnBattleState);
     const report = validTurnReport();

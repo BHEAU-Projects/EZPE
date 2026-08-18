@@ -188,6 +188,7 @@ function applySwitch(
     boosts: structuredClone(emptyBoosts),
     volatileEffectIds: [],
     protectedThisTurn: false,
+    protectStreak: 0,
     currentItemId: incomingPokemon.currentItemId,
     currentAbilityId: incomingPokemon.currentAbilityId,
     movePp: incomingPokemon.movePp

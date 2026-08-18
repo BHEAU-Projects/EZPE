@@ -175,6 +175,9 @@ function buildTurnInputOptions(state: BattleState) {
         key: string;
         moveId: string;
         moveName: string;
+        moveType: string;
+        moveSource: "known" | "confirmed" | "predicted";
+        successChancePercent: number;
         specialMechanic?: LegalAction["specialMechanic"];
         targets: MoveLegalAction["targetSlot"][];
       }>();
@@ -188,10 +191,21 @@ function buildTurnInputOptions(state: BattleState) {
           if (!existing.targets.includes(action.targetSlot)) existing.targets.push(action.targetSlot);
           continue;
         }
+        const move = pokemonDataService.getMove(state.regulationId, action.moveId);
+        const moveSource = side === state.playerSide
+          ? "known"
+          : pokemon.set.moveKnowledge?.observedMoveIds.includes(action.moveId)
+            ? "confirmed"
+            : "predicted";
         moveGroups.set(key, {
           key,
           moveId: action.moveId,
-          moveName: pokemonDataService.getMove(state.regulationId, action.moveId)?.name ?? action.moveId,
+          moveName: move?.name ?? action.moveId,
+          moveType: move?.type.toLowerCase() ?? "normal",
+          moveSource,
+          successChancePercent: move?.stallingMove
+            ? 100 / (3 ** pokemon.protectStreak)
+            : 100,
           ...(action.specialMechanic ? { specialMechanic: action.specialMechanic } : {}),
           targets: [action.targetSlot]
         });
@@ -204,13 +218,18 @@ function buildTurnInputOptions(state: BattleState) {
         displayName: pokemon.set.displayName ?? pokemon.set.speciesId,
         fainted: pokemon.hp.unit === "exact" ? pokemon.hp.current === 0 : pokemon.hp.percent === 0,
         moves: [...moveGroups.values()],
-        switches: slotActions.flatMap((action) => action.type === "switch" ? [{
-          benchSlot: action.benchSlot,
-          speciesId: action.speciesId,
-          displayName: state.teams[side as PlayerSide].bench.find(
+        switches: slotActions.flatMap((action) => {
+          if (action.type !== "switch") return [];
+          const incoming = state.teams[side as PlayerSide].bench.find(
             (pokemon) => pokemon.benchSlot === action.benchSlot
-          )?.set.displayName ?? action.speciesId
-        }] : [])
+          );
+          return [{
+            benchSlot: action.benchSlot,
+            speciesId: action.speciesId,
+            displayName: incoming?.set.displayName ?? action.speciesId,
+            hp: incoming?.hp
+          }];
+        })
       };
     })
   );

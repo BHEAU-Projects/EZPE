@@ -207,6 +207,7 @@ export const activePokemonSchema = z
     boosts: statBoostsSchema.default(defaultStatBoosts),
     volatileEffectIds: z.array(canonicalIdSchema).default([]),
     protectedThisTurn: z.boolean().default(false),
+    protectStreak: z.number().int().min(0).max(6).default(0),
     ...pokemonRuntimeStateFields
   })
   .strict();

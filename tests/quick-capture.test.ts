@@ -41,6 +41,11 @@ describe("Quick Capture server", () => {
     expect(battle.body).toContain("Manual corrections");
     expect(battle.body).toContain("Observed Effects");
     expect(battle.body).toContain('localStorage.getItem("ezpe-ranking-settings")');
+    expect(battle.body).toContain("source-confirmed");
+    expect(battle.body).toContain("source-predicted");
+    expect(battle.body).toContain("type-electric");
+    expect(battle.body).toContain("targetDamages");
+    expect(battle.body).toContain("selectSwitch(option, choice)");
     expect(health.json()).toEqual({ status: "ok", version: "0.1.0" });
   });
 
@@ -59,6 +64,9 @@ describe("Quick Capture server", () => {
           expect.objectContaining({
             moveId: "thunderbolt",
             moveName: "Thunderbolt",
+            moveType: "electric",
+            moveSource: "known",
+            successChancePercent: 100,
             targets: expect.arrayContaining(["p2a", "p2b"])
           })
         ])
@@ -74,6 +82,26 @@ describe("Quick Capture server", () => {
       pp: 15,
       target: "normal"
     });
+  });
+
+  it("prefills switch choices with the incoming Pokemon's HP", async () => {
+    const state = structuredClone(singleTurnBattleState);
+    const incomingSet = structuredClone(state.teams.p2.active[0].set);
+    state.teams.p1.bench = [{
+      benchSlot: 0,
+      set: incomingSet,
+      hp: { unit: "exact", current: 73, max: incomingSet.stats.hp },
+      status: "healthy",
+      fainted: false
+    }];
+    app = buildServer(state);
+
+    const response = await app.inject({ method: "GET", url: "/api/state" });
+    const pikachu = response.json().turnOptions.find((option: { slot: string }) => option.slot === "p1a");
+    expect(pikachu.switches).toContainEqual(expect.objectContaining({
+      speciesId: "squirtle",
+      hp: { unit: "exact", current: 73, max: incomingSet.stats.hp }
+    }));
   });
 
   it("builds a live battle from player and opponent setup submissions", async () => {
@@ -165,6 +193,14 @@ describe("Quick Capture server", () => {
     expect(response.statusCode).toBe(200);
     expect(response.json().state.teams.p2.active[0].set.moveKnowledge).toMatchObject({
       observedMoveIds: ["watergun"]
+    });
+    const squirtle = response.json().turnOptions.find((option: { slot: string }) => option.slot === "p2a");
+    expect(squirtle.moves.find((move: { moveId: string }) => move.moveId === "watergun")).toMatchObject({
+      moveType: "water",
+      moveSource: "confirmed"
+    });
+    expect(squirtle.moves.find((move: { moveId: string }) => move.moveId === "tackle")).toMatchObject({
+      moveSource: "predicted"
     });
   });
 

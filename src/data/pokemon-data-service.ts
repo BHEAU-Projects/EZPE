@@ -68,6 +68,7 @@ export interface MoveData {
   pp: number;
   target: string;
   effectScore: number;
+  stallingMove: boolean;
 }
 
 export interface TeamValidationOptions {
@@ -189,7 +190,8 @@ export class PokemonDataService {
       priority: move.priority,
       pp: move.pp,
       target: move.target,
-      effectScore: calculateMoveEffectScore(move)
+      effectScore: calculateMoveEffectScore(move),
+      stallingMove: Boolean(move.stallingMove)
     };
   }
 

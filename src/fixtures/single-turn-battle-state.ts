@@ -39,7 +39,8 @@ export const singleTurnBattleState: BattleState = {
           status: "healthy",
           boosts: emptyBoosts,
           volatileEffectIds: [],
-          protectedThisTurn: false
+          protectedThisTurn: false,
+          protectStreak: 0
         },
         {
           slot: "p1b",
@@ -58,7 +59,8 @@ export const singleTurnBattleState: BattleState = {
           status: "healthy",
           boosts: emptyBoosts,
           volatileEffectIds: [],
-          protectedThisTurn: false
+          protectedThisTurn: false,
+          protectStreak: 0
         }
       ],
       bench: [],
@@ -94,7 +96,8 @@ export const singleTurnBattleState: BattleState = {
           status: "healthy",
           boosts: emptyBoosts,
           volatileEffectIds: [],
-          protectedThisTurn: false
+          protectedThisTurn: false,
+          protectStreak: 0
         },
         {
           slot: "p2b",
@@ -113,7 +116,8 @@ export const singleTurnBattleState: BattleState = {
           status: "healthy",
           boosts: emptyBoosts,
           volatileEffectIds: [],
-          protectedThisTurn: false
+          protectedThisTurn: false,
+          protectStreak: 0
         }
       ],
       bench: [],

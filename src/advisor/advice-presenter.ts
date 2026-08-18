@@ -25,16 +25,28 @@ export interface DamageEstimate {
   koChancePercent: number;
 }
 
+export type PresentedMoveSource = "known" | "confirmed" | "predicted";
+
+export interface PresentedTargetDamage {
+  targetSlot: string;
+  targetSpecies: string;
+  damage: DamageEstimate;
+}
+
 export interface PresentedAction {
   type: "move" | "switch";
   actorSlot: string;
   actorSpecies: string;
   moveId?: string;
   moveName?: string;
+  moveType?: string;
+  moveSource?: PresentedMoveSource;
+  specialMechanic?: string;
   targetSlot?: TargetSlot;
   targetSpecies: string;
   switchSpecies?: string;
   damage: DamageEstimate | null;
+  targetDamages?: PresentedTargetDamage[];
 }
 
 export interface PresentedWorstCaseAction extends PresentedAction {
@@ -191,7 +203,12 @@ export class AdvicePresenter {
       };
     } else {
       const move = pokemonDataService.getMove(this.battleState.regulationId, action.moveId);
-      const targets = resolveTargetPokemon(this.battleState, action.activeSlot, action.targetSlot);
+      const targets = resolveTargetPokemon(
+        this.battleState,
+        action.activeSlot,
+        action.targetSlot,
+        move?.target
+      );
       const targetSpecies = targets.length > 0
         ? targets.map((target) => displaySpecies(target.set)).join(" + ")
         : formatNonPokemonTarget(action.targetSlot, actorSpecies);
@@ -203,9 +220,17 @@ export class AdvicePresenter {
         actorSpecies,
         moveId: action.moveId,
         moveName: move?.name ?? action.moveId,
+        moveType: move?.type.toLowerCase() ?? "normal",
+        moveSource: resolveMoveSource(this.battleState, actor, action.moveId),
+        ...(action.specialMechanic ? { specialMechanic: action.specialMechanic.kind } : {}),
         targetSlot: action.targetSlot,
         targetSpecies,
-        damage: combineTargetEstimates(estimates)
+        damage: combineTargetEstimates(estimates),
+        targetDamages: estimates.map(({ targetSlot, targetSpecies, outcomes: _outcomes, targetCurrentHp: _targetCurrentHp, ...damage }) => ({
+          targetSlot,
+          targetSpecies,
+          damage
+        }))
       };
     }
 
@@ -220,11 +245,16 @@ export class AdvicePresenter {
     const cached = this.targetEstimateCache.get(key);
     if (cached) return cached;
 
-    const targets = resolveTargetPokemon(this.battleState, action.activeSlot, action.targetSlot);
     const move = pokemonDataService.getMove(this.battleState.regulationId, action.moveId);
+    const targets = resolveTargetPokemon(
+      this.battleState,
+      action.activeSlot,
+      action.targetSlot,
+      move?.target
+    );
     const estimates = move?.category === "Status"
       ? []
-      : estimateMoveDamage(this.battleState, action, targets.length > 1);
+      : estimateMoveDamage(this.battleState, action, targets, targets.length > 1);
     this.targetEstimateCache.set(key, estimates);
     return estimates;
   }
@@ -251,9 +281,9 @@ export function presentPlayerMovePp(state: BattleState): Record<string, Presente
 function estimateMoveDamage(
   state: BattleState,
   action: Extract<LegalAction, { type: "move" }>,
+  targets: ReturnType<typeof resolveTargetPokemon>,
   spreadHit: boolean
 ): TargetDamageEstimate[] {
-  const targets = resolveTargetPokemon(state, action.activeSlot, action.targetSlot);
   if (targets.length === 0) return [];
 
   const battle = createHydratedBattleFromState(state);
@@ -502,15 +532,34 @@ function toShowdownTargetLocation(activeSlot: string, targetSlot: TargetSlot): n
 function resolveTargetPokemon(
   state: BattleState,
   activeSlot: string,
-  targetSlot: TargetSlot
+  targetSlot: TargetSlot,
+  moveTarget?: string
 ) {
   if (targetSlot === "self") return [findPokemonByActiveSlot(state, activeSlot)];
   if (targetSlot === "opponentSide") {
     const side = activeSlot.startsWith("p1") ? "p2" : "p1";
-    return state.teams[side].active;
+    return state.teams[side].active.filter((pokemon) => !isFainted(pokemon));
+  }
+  if (targetSlot === "field" && moveTarget === "allAdjacent") {
+    return [...state.teams.p1.active, ...state.teams.p2.active].filter(
+      (pokemon) => pokemon.slot !== activeSlot && !isFainted(pokemon)
+    );
   }
   if (targetSlot === "allySide" || targetSlot === "field") return [];
   return [findPokemonByActiveSlot(state, targetSlot)];
+}
+
+function resolveMoveSource(
+  state: BattleState,
+  actor: ReturnType<typeof findPokemonByActiveSlot>,
+  moveId: string
+): PresentedMoveSource {
+  if (actor.slot.startsWith(state.playerSide)) return "known";
+  return actor.set.moveKnowledge?.observedMoveIds.includes(moveId) ? "confirmed" : "predicted";
+}
+
+function isFainted(pokemon: ReturnType<typeof findPokemonByActiveSlot>): boolean {
+  return pokemon.hp.unit === "exact" ? pokemon.hp.current === 0 : pokemon.hp.percent === 0;
 }
 
 function getShowdownPokemon(
