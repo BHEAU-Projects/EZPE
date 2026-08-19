@@ -29,9 +29,18 @@ Use `typecheck` and `test` after changing schemas, mechanics, simulation, or adv
 
 ## Scoring Configuration
 
-All subjective advisor grading lives in `config/scoring.json`. Adjust its damage, KO,
-risk, opponent-aggregation, threshold, and confidence values without editing TypeScript.
-The running process reloads the validated file when its modification time changes.
+All subjective advisor grading lives in `config/scoring.json`. Adjust its normalized
+damage, KO, healing, useful setup, speed-order swing, field control, action
+restriction, item denial, residual pressure, wasted action, uncertainty, ally
+synergy, risk, opponent-aggregation, threshold, and confidence values without
+editing TypeScript. The running process reloads the validated file when its
+modification time changes.
+
+Raw HP is retained in debug output, but damage and healing are graded as a
+percentage of each Pokemon's maximum HP so bulky Pokemon do not distort the
+ranking merely by having larger numbers. The default final score is 70% of the
+mean score across evaluated opponent scenarios plus 30% of the weakest opponent
+scenario's expected score.
 
 ## Terminal Workflow
 
@@ -116,6 +125,19 @@ npm run data:refresh:moves
 The bundled snapshot covers 275 Pokemon and records its format, rating cutoff,
 data period, retrieval date, and source URL.
 
+## Battle Information Context
+
+Battle state includes a `battleContext` field. It defaults to `ranked-closed`,
+which treats unrevealed opposing moves as predictions and lowers information
+confidence until moves are observed. Use `vgc-open-sheet` only for an event that
+actually supplies open team sheets. Regulation snapshots describe rules and
+legality; they do not imply that every battle exposes team sheets.
+
+Active Pokemon also retain battle-local memory such as turns active, the last
+move and result, and structured volatile effects. Switching clears memory that
+belongs to the previous active Pokemon while preserving observations that belong
+to the team member itself.
+
 ## Planned Input Concept
 
 The structured JSON input describes:
@@ -142,9 +164,13 @@ The simulator converts percentages to an estimated Showdown HP value only at the
 The analyzer returns ranked actions rather than one unexplained answer. Each result includes:
 
 - Action name, target, and action type.
-- Numeric score and confidence.
-- Short explanation tags such as damage, KO chance, speed control, defensive safety, board position, or setup value.
-- Expected outcome summary from simulation/search.
+- `Score`: the configured blend of scenario mean and worst opponent response.
+- `Scenario mean`: the average mechanics-aware result across evaluated opponent plans.
+- `Worst response`: the expected score against the weakest evaluated opponent plan.
+- `Branch floor`: the lowest sampled accuracy, critical-hit, damage-roll, and secondary-effect branch.
+- Confidence derived from ranking separation, mechanics-branch agreement, and available opponent information.
+- Short explanation tags for damage, KOs, healing, useful setup, order swings, action denial, item denial, residual pressure, ally synergy, risk, and wasted actions.
+- Per-target expected damage plus a separate highest-damage enemy line for fast risk review.
 
 ## Accuracy-First Roadmap
 
@@ -155,5 +181,5 @@ The analyzer returns ranked actions rather than one unexplained answer. Each res
 5. Validate recommendations against recorded games before adding screenshot or video capture.
 
 ## Future Roadmap
-1. Optimization on looking through the plans. Current version on 3 Recommendations and 4 Opponent Scenario takes about 7-9 seconds to complete which is too long for actual gameplay.
-2. Support various unique pokemon ability like Ditto
+1. Optimize cold first analysis and larger opponent-scenario searches. The warm default profile of 3 recommendations and 4 opponent scenarios is regression-tested below 2 seconds.
+2. Add explicit regression coverage for unusual form-changing or copying mechanics such as Ditto.

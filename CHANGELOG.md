@@ -233,7 +233,7 @@ milestone and linked to their checkpoint commits.
 
 ## 2026-08-19 - Champions-Native Scoring Upgrade
 
-### PKMoveScoring strategy audit
+### PKMoveScoring strategy audit (`af97545`)
 
 - Audited the Platinum Kaizo AI move-scoring reference as a strategy taxonomy,
   not as a mechanics implementation.
@@ -245,6 +245,47 @@ milestone and linked to their checkpoint commits.
 - Added a staged implementation and regression-test matrix for battle memory,
   outcome extraction, contextual scoring, opponent aggregation, and advice
   confidence.
+
+### Battle memory (`18d27c3`)
+
+- Added ranked closed-information and VGC open-team-sheet battle contexts with
+  backwards-compatible defaults for existing sessions.
+- Tracked active turns, last move and result, and structured volatile effects.
+- Restored Encore, Disable, Torment, Fake Out, and First Impression restrictions
+  when hydrating a saved state into Pokemon Showdown.
+- Reset active-only memory on switches while preserving revealed move knowledge.
+
+### Showdown outcome extraction (`01e8e97`)
+
+- Added ordered move events, capped damage percentages, healing, recoil,
+  residual damage, richer item changes, and action-speed snapshots.
+- Extracted protection, redirection, substitutes, action restrictions, and ally
+  synergy from Showdown logs for contextual scoring.
+- Added focused tests for overkill, healing, residual damage, Protect, Follow Me,
+  Substitute, Helping Hand, and Fake Out.
+
+### Contextual scoring (`4c000a1`)
+
+- Replaced raw-HP damage grading with normalized damage and healing values.
+- Added configurable useful-boost, actual speed-order swing, relevant screen,
+  action-restriction, item-denial, residual-pressure, ally-synergy, uncertainty,
+  and wasted-action grading.
+- Aggregated mechanics branches within each opponent response before combining
+  scenario mean and worst-response scores.
+- Made confidence depend on score separation, branch agreement, and opponent
+  information completeness.
+
+### Advice semantics and Champions coverage (`9fbde0b`)
+
+- Exposed scenario mean, worst response, branch floor, branch agreement, and
+  information confidence through the ranking API and Quick Capture screen.
+- Renamed the damage-only preview to Highest-damage enemy line so it is not
+  confused with the scorer's worst strategic response.
+- Defaulted ranked Regulation M-A and M-B sessions to closed information while
+  retaining an explicit open-sheet battle context.
+- Added Champions regression tests for the 20 PP cap, Mega plan limits, spread
+  immunities, Protect interaction, paralysis, sleep, and freeze behavior.
+- Verified 161 tests and a warm default ranking profile below two seconds.
 
 ## Current Snapshot
 
