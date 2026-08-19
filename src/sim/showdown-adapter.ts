@@ -64,7 +64,10 @@ export interface ShowdownMoveEvent {
   user: string;
   move: string;
   target?: string;
+  order: number;
 }
+
+export type ShowdownDamageCause = "move" | "recoil" | "residual" | "self" | "other";
 
 export interface ShowdownDamageEvent {
   side: PlayerSide;
@@ -73,7 +76,27 @@ export interface ShowdownDamageEvent {
   target: string;
   remainingHp: number;
   maxHp: number | null;
+  startingHp: number;
   damageAmount: number;
+  damagePercent: number;
+  sourceSide?: PlayerSide;
+  sourceSlot?: string;
+  cause: ShowdownDamageCause;
+  rawHpText: string;
+}
+
+export interface ShowdownHealingEvent {
+  side: PlayerSide;
+  slot: string;
+  pokemon: string;
+  target: string;
+  startingHp: number;
+  remainingHp: number;
+  maxHp: number | null;
+  healingAmount: number;
+  healingPercent: number;
+  sourceSide?: PlayerSide;
+  sourceSlot?: string;
   rawHpText: string;
 }
 
@@ -119,6 +142,7 @@ export interface ShowdownActionOutcome {
   outcome: "moved" | "switched" | "denied" | "missed" | "failed" | "immune" | "fainted-before-action" | "not-observed";
   move?: string;
   reason?: string;
+  order?: number;
 }
 
 export interface ShowdownConditionChange {
@@ -143,10 +167,23 @@ export interface ShowdownForcedSwitch {
   pokemon: string;
 }
 
+export interface ShowdownTacticalEffect {
+  kind: "protection" | "redirection" | "substitute" | "action-restriction" | "ally-synergy";
+  side: PlayerSide;
+  slot: string;
+  pokemon: string;
+  effectId: string;
+}
+
 export interface SingleTurnOutcomeSummary {
   hpByPokemon: ShowdownPokemonHpSummary[];
   faintedPokemon: ShowdownPokemonHpSummary[];
   damageTakenBySide: Record<PlayerSide, number>;
+  damageTakenPercentBySide: Record<PlayerSide, number>;
+  healingBySide: Record<PlayerSide, number>;
+  healingPercentBySide: Record<PlayerSide, number>;
+  recoilDamageBySide: Record<PlayerSide, number>;
+  residualDamageBySide: Record<PlayerSide, number>;
   kosTakenBySide: Record<PlayerSide, number>;
   movesBySide: Record<PlayerSide, ShowdownMoveEvent[]>;
   statusChanges: ShowdownStatusChange[];
@@ -156,6 +193,7 @@ export interface SingleTurnOutcomeSummary {
   conditionChanges: ShowdownConditionChange[];
   itemChanges: ShowdownItemChange[];
   forcedSwitches: ShowdownForcedSwitch[];
+  tacticalEffects: ShowdownTacticalEffect[];
   criticalHitsBySide: Record<PlayerSide, number>;
   missesBySide: Record<PlayerSide, number>;
 }
@@ -166,6 +204,7 @@ export interface SingleTurnSimulationResult {
   log: string[];
   moveEvents: ShowdownMoveEvent[];
   damageEvents: ShowdownDamageEvent[];
+  healingEvents: ShowdownHealingEvent[];
   summary: SingleTurnOutcomeSummary;
   initialState: HydratedBattleSummary;
   finalState: HydratedBattleSummary;
@@ -325,7 +364,7 @@ export function simulateSingleTurn(input: SingleTurnSimulationInput): SingleTurn
     const log = [...battle.log];
 
     const moveEvents = parseMoveEvents(log);
-    const damageEvents = parseDamageEvents(log, initialHpBySlot);
+    const { damageEvents, healingEvents } = parseHpEvents(log, initialHpBySlot);
     const finalState = captureHydratedBattleState(battle);
 
     return {
@@ -334,10 +373,12 @@ export function simulateSingleTurn(input: SingleTurnSimulationInput): SingleTurn
       log,
       moveEvents,
       damageEvents,
+      healingEvents,
       summary: summarizeSingleTurnOutcome(
         log,
         moveEvents,
         damageEvents,
+        healingEvents,
         initialHpBySlot,
         initialState,
         finalState
@@ -461,6 +502,7 @@ function toShowdownTargetLocation(activeSlot: string, targetSlot: string): numbe
 }
 
 function parseMoveEvents(log: string[]): ShowdownMoveEvent[] {
+  let order = 0;
   return log.flatMap((line) => {
     if (!line.startsWith("|move|")) return [];
 
@@ -473,29 +515,38 @@ function parseMoveEvents(log: string[]): ShowdownMoveEvent[] {
         slot: parsedUser.slot,
         user,
         move,
-        target
+        target,
+        order: ++order
       }
     ];
   });
 }
 
-function parseDamageEvents(
+function parseHpEvents(
   log: string[],
   initialHpBySlot: ReadonlyMap<string, ShowdownPokemonHpSummary> = new Map()
-): ShowdownDamageEvent[] {
-  const events: ShowdownDamageEvent[] = [];
+): { damageEvents: ShowdownDamageEvent[]; healingEvents: ShowdownHealingEvent[] } {
+  const damageEvents: ShowdownDamageEvent[] = [];
+  const healingEvents: ShowdownHealingEvent[] = [];
   const hpBySlot = new Map<string, { remainingHp: number; maxHp: number | null }>(
     [...initialHpBySlot].map(([slot, hp]) => [
       slot,
       { remainingHp: hp.remainingHp, maxHp: hp.maxHp }
     ])
   );
-  let previousDamageLine = "";
+  let previousHpLine = "";
   let turnStarted = false;
+  let currentMove: ReturnType<typeof parsePokemonLabel> | undefined;
 
   for (const line of log) {
     if (line.startsWith("|turn|")) {
       turnStarted = true;
+      continue;
+    }
+
+    if (line.startsWith("|move|")) {
+      const [, , user] = line.split("|");
+      currentMove = parsePokemonLabel(user);
       continue;
     }
 
@@ -514,42 +565,110 @@ function parseDamageEvents(
       continue;
     }
 
-    if (!line.startsWith("|-damage|")) continue;
-    if (line === previousDamageLine) continue;
+    const isDamage = line.startsWith("|-damage|");
+    const isHealing = line.startsWith("|-heal|");
+    if (!isDamage && !isHealing) continue;
+    if (line === previousHpLine) continue;
 
-    previousDamageLine = line;
+    previousHpLine = line;
 
-    const [, , target, rawHpText] = line.split("|");
+    const [, , target, rawHpText, ...annotations] = line.split("|");
     const parsedTarget = parsePokemonLabel(target);
     const previousHp = hpBySlot.get(parsedTarget.slot);
     const hp = parseHpText(rawHpText);
     const maxHp = hp.maxHp ?? previousHp?.maxHp ?? null;
-    const damageAmount = previousHp ? Math.max(0, previousHp.remainingHp - hp.remainingHp) : 0;
+    const startingHp = previousHp?.remainingHp ?? hp.remainingHp;
+    const amount = previousHp
+      ? Math.max(0, isDamage ? previousHp.remainingHp - hp.remainingHp : hp.remainingHp - previousHp.remainingHp)
+      : 0;
+    const percent = maxHp && maxHp > 0 ? Math.min(100, amount / maxHp * 100) : 0;
+    const source = resolveHpEventSource(annotations, currentMove, parsedTarget, isDamage);
 
     hpBySlot.set(parsedTarget.slot, {
       remainingHp: hp.remainingHp,
       maxHp
     });
 
-    events.push({
-      side: parsedTarget.side,
-      slot: parsedTarget.slot,
-      pokemon: parsedTarget.pokemon,
-      target,
-      remainingHp: hp.remainingHp,
-      maxHp,
-      damageAmount,
-      rawHpText
-    });
+    if (isDamage) {
+      damageEvents.push({
+        side: parsedTarget.side,
+        slot: parsedTarget.slot,
+        pokemon: parsedTarget.pokemon,
+        target,
+        startingHp,
+        remainingHp: hp.remainingHp,
+        maxHp,
+        damageAmount: amount,
+        damagePercent: percent,
+        ...source,
+        rawHpText
+      });
+    } else {
+      healingEvents.push({
+        side: parsedTarget.side,
+        slot: parsedTarget.slot,
+        pokemon: parsedTarget.pokemon,
+        target,
+        startingHp,
+        remainingHp: hp.remainingHp,
+        maxHp,
+        healingAmount: amount,
+        healingPercent: percent,
+        ...(source.sourceSide ? { sourceSide: source.sourceSide } : {}),
+        ...(source.sourceSlot ? { sourceSlot: source.sourceSlot } : {}),
+        rawHpText
+      });
+    }
   }
 
-  return events;
+  return { damageEvents, healingEvents };
+}
+
+function resolveHpEventSource(
+  annotations: string[],
+  currentMove: ReturnType<typeof parsePokemonLabel> | undefined,
+  target: ReturnType<typeof parsePokemonLabel>,
+  isDamage: boolean
+): { sourceSide?: PlayerSide; sourceSlot?: string; cause: ShowdownDamageCause } {
+  const annotationText = annotations.join("|").toLowerCase();
+  const sourceAnnotation = annotations.find((annotation) => annotation.startsWith("[of] "));
+  const sourceLabel = sourceAnnotation?.slice(5);
+  const annotatedSource = sourceLabel?.startsWith("p1") || sourceLabel?.startsWith("p2")
+    ? parsePokemonLabel(sourceLabel)
+    : undefined;
+
+  if (!isDamage) {
+    const source = annotatedSource ?? currentMove;
+    return {
+      ...(source ? { sourceSide: source.side, sourceSlot: source.slot } : {}),
+      cause: "other"
+    };
+  }
+  if (annotationText.includes("recoil")) {
+    return { sourceSide: target.side, sourceSlot: target.slot, cause: "recoil" };
+  }
+  if (annotationText.includes("[from]")) {
+    const source = annotatedSource;
+    return {
+      ...(source ? { sourceSide: source.side, sourceSlot: source.slot } : {}),
+      cause: source?.slot === target.slot ? "self" : "residual"
+    };
+  }
+  if (currentMove) {
+    return {
+      sourceSide: currentMove.side,
+      sourceSlot: currentMove.slot,
+      cause: currentMove.slot === target.slot ? "self" : "move"
+    };
+  }
+  return { cause: "other" };
 }
 
 function summarizeSingleTurnOutcome(
   log: string[],
   moveEvents: ShowdownMoveEvent[],
   damageEvents: ShowdownDamageEvent[],
+  healingEvents: ShowdownHealingEvent[],
   initialHpBySlot: ReadonlyMap<string, ShowdownPokemonHpSummary> = new Map(),
   initialState?: HydratedBattleSummary,
   finalState?: HydratedBattleSummary
@@ -609,6 +728,26 @@ function summarizeSingleTurnOutcome(
       p1: sumDamageTakenBySide(damageEvents, "p1"),
       p2: sumDamageTakenBySide(damageEvents, "p2")
     },
+    damageTakenPercentBySide: {
+      p1: sumPercentBySide(damageEvents, "p1", "damagePercent"),
+      p2: sumPercentBySide(damageEvents, "p2", "damagePercent")
+    },
+    healingBySide: {
+      p1: sumHealingBySide(healingEvents, "p1", "healingAmount"),
+      p2: sumHealingBySide(healingEvents, "p2", "healingAmount")
+    },
+    healingPercentBySide: {
+      p1: sumHealingBySide(healingEvents, "p1", "healingPercent"),
+      p2: sumHealingBySide(healingEvents, "p2", "healingPercent")
+    },
+    recoilDamageBySide: {
+      p1: sumDamageByCause(damageEvents, "p1", "recoil"),
+      p2: sumDamageByCause(damageEvents, "p2", "recoil")
+    },
+    residualDamageBySide: {
+      p1: sumDamageByCause(damageEvents, "p1", "residual"),
+      p2: sumDamageByCause(damageEvents, "p2", "residual")
+    },
     kosTakenBySide: {
       p1: faintedPokemon.filter((pokemon) => pokemon.side === "p1").length,
       p2: faintedPokemon.filter((pokemon) => pokemon.side === "p2").length
@@ -622,6 +761,7 @@ function summarizeSingleTurnOutcome(
     actionOutcomes,
     conditionChanges: parseConditionChanges(log),
     forcedSwitches: parseForcedSwitches(log),
+    tacticalEffects: parseTacticalEffects(log),
     criticalHitsBySide: countLogTargetsBySide(log, "|-crit|"),
     missesBySide: countMissesBySide(actionOutcomes)
   };
@@ -698,6 +838,7 @@ function parseActionOutcomes(
 
   let currentTurnStarted = false;
   let lastMoverSlot = "";
+  let actionOrder = 0;
   for (const line of log) {
     if (line.startsWith("|turn|")) {
       currentTurnStarted = true;
@@ -707,13 +848,19 @@ function parseActionOutcomes(
       const [, , label, move] = line.split("|");
       const parsed = parsePokemonLabel(label);
       lastMoverSlot = parsed.slot;
-      outcomes.set(parsed.slot, { ...parsed, outcome: "moved", move });
+      outcomes.set(parsed.slot, { ...parsed, outcome: "moved", move, order: ++actionOrder });
       continue;
     }
     if (line.startsWith("|cant|")) {
       const [, , label, reason] = line.split("|");
       const parsed = parsePokemonLabel(label);
-      outcomes.set(parsed.slot, { ...parsed, outcome: "denied", reason: toCanonicalId(reason) });
+      const existing = outcomes.get(parsed.slot);
+      outcomes.set(parsed.slot, {
+        ...parsed,
+        outcome: "denied",
+        reason: toCanonicalId(reason),
+        order: existing?.order ?? ++actionOrder
+      });
       continue;
     }
     if (line.startsWith("|-miss|")) {
@@ -736,7 +883,7 @@ function parseActionOutcomes(
     if (currentTurnStarted && line.startsWith("|switch|")) {
       const [, , label] = line.split("|");
       const parsed = parsePokemonLabel(label);
-      outcomes.set(parsed.slot, { ...parsed, outcome: "switched" });
+      outcomes.set(parsed.slot, { ...parsed, outcome: "switched", order: ++actionOrder });
     }
   }
 
@@ -746,6 +893,47 @@ function parseActionOutcomes(
       ? { ...outcome, outcome: "fainted-before-action" }
       : outcome;
   });
+}
+
+function parseTacticalEffects(log: string[]): ShowdownTacticalEffect[] {
+  const protection = new Set([
+    "protect", "detect", "kingsshield", "spikyshield", "banefulbunker",
+    "obstruct", "silktrap", "burningbulwark", "wideguard", "quickguard", "matblock"
+  ]);
+  const redirection = new Set(["followme", "ragepowder", "spotlight"]);
+  const restrictions = new Set(["encore", "disable", "torment", "taunt", "healblock", "imprison"]);
+  const allySynergy = new Set(["helpinghand"]);
+  const effects: ShowdownTacticalEffect[] = [];
+
+  for (const line of log) {
+    if (line.startsWith("|cant|")) {
+      const [, , label, rawReason] = line.split("|");
+      const parsed = parsePokemonLabel(label);
+      effects.push({ ...parsed, kind: "action-restriction", effectId: toCanonicalId(rawReason) });
+      continue;
+    }
+    if (!line.startsWith("|-singleturn|") && !line.startsWith("|-start|")) continue;
+    const [, , label, rawEffect] = line.split("|");
+    if (!label?.startsWith("p1") && !label?.startsWith("p2")) continue;
+    const parsed = parsePokemonLabel(label);
+    const effectId = toCanonicalId(rawEffect.replace(/^move: /i, ""));
+    const kind = protection.has(effectId)
+      ? "protection"
+      : redirection.has(effectId)
+        ? "redirection"
+        : effectId === "substitute"
+          ? "substitute"
+          : restrictions.has(effectId)
+            ? "action-restriction"
+            : allySynergy.has(effectId)
+              ? "ally-synergy"
+              : null;
+    if (kind) effects.push({ ...parsed, kind, effectId });
+  }
+
+  return [...new Map(
+    effects.map((effect) => [`${effect.kind}:${effect.slot}:${effect.effectId}`, effect])
+  ).values()];
 }
 
 function parseVolatileChanges(log: string[]): ShowdownVolatileChange[] {
@@ -837,6 +1025,36 @@ function sumDamageTakenBySide(damageEvents: ShowdownDamageEvent[], side: PlayerS
   return damageEvents
     .filter((event) => event.side === side)
     .reduce((totalDamage, event) => totalDamage + event.damageAmount, 0);
+}
+
+function sumPercentBySide(
+  damageEvents: ShowdownDamageEvent[],
+  side: PlayerSide,
+  key: "damagePercent"
+): number {
+  return damageEvents
+    .filter((event) => event.side === side)
+    .reduce((total, event) => total + event[key], 0);
+}
+
+function sumHealingBySide(
+  healingEvents: ShowdownHealingEvent[],
+  side: PlayerSide,
+  key: "healingAmount" | "healingPercent"
+): number {
+  return healingEvents
+    .filter((event) => event.side === side)
+    .reduce((total, event) => total + event[key], 0);
+}
+
+function sumDamageByCause(
+  damageEvents: ShowdownDamageEvent[],
+  side: PlayerSide,
+  cause: ShowdownDamageCause
+): number {
+  return damageEvents
+    .filter((event) => event.side === side && event.cause === cause)
+    .reduce((total, event) => total + event.damageAmount, 0);
 }
 
 function parsePokemonLabel(label: string): { side: PlayerSide; slot: string; pokemon: string } {

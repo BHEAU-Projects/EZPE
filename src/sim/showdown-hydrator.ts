@@ -29,6 +29,7 @@ export interface HydratedPokemonSummary {
   volatileEffects: VolatileEffect[];
   turnsActive: number;
   lastMoveId: string | null;
+  actionSpeed: number;
 }
 
 export interface HydratedBattleSummary {
@@ -132,7 +133,8 @@ export function captureHydratedBattleState(battle: Battle): HydratedBattleSummar
           };
         }),
         turnsActive: member.activeMoveActions,
-        lastMoveId: member.lastMove?.id ?? null
+        lastMoveId: member.lastMove?.id ?? null,
+        actionSpeed: member.getActionSpeed()
       });
     });
   }

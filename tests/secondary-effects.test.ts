@@ -107,4 +107,61 @@ describe("secondary-aware Showdown outcomes", () => {
     }));
     expect(simulation.summary.movesBySide.p2.some((move) => move.slot === "p2a")).toBe(false);
   });
+
+  it("normalizes and caps damage at the target's HP before the hit", () => {
+    const state = structuredClone(singleTurnBattleState);
+    state.teams.p2.active[0].hp = { unit: "percent", percent: 1 };
+    const simulation = simulate(state, "move thunderbolt 1, move protect");
+    const damage = simulation.damageEvents.find((event) => event.slot === "p2a");
+
+    expect(damage).toBeDefined();
+    expect(damage!.damageAmount).toBeLessThanOrEqual(damage!.startingHp);
+    expect(damage!.damagePercent).toBeCloseTo(damage!.damageAmount / damage!.maxHp! * 100);
+  });
+
+  it("extracts useful healing, recoil, and residual damage separately", () => {
+    const recoveryState = stateWithMoves("recover");
+    recoveryState.teams.p1.active[0].hp = { unit: "exact", current: 30, max: 110 };
+    const recovered = simulate(recoveryState, "move recover, move protect");
+
+    const recoilState = stateWithMoves("wildcharge");
+    const recoiled = simulate(recoilState, "move wildcharge 2, move protect");
+
+    const burnState = stateWithMoves("protect");
+    burnState.teams.p1.active[0].status = "brn";
+    const burned = simulate(burnState, "move protect, move protect");
+
+    expect(recovered.healingEvents).toContainEqual(expect.objectContaining({
+      slot: "p1a",
+      healingAmount: expect.any(Number)
+    }));
+    expect(recovered.summary.healingPercentBySide.p1).toBeGreaterThan(0);
+    expect(recoiled.damageEvents).toContainEqual(expect.objectContaining({
+      slot: "p1a",
+      cause: "recoil"
+    }));
+    expect(recoiled.summary.recoilDamageBySide.p1).toBeGreaterThan(0);
+    expect(burned.damageEvents).toContainEqual(expect.objectContaining({
+      slot: "p1a",
+      cause: "residual"
+    }));
+    expect(burned.summary.residualDamageBySide.p1).toBeGreaterThan(0);
+  });
+
+  it("extracts protection, redirection, substitutes, restrictions, and ally support", () => {
+    const protection = simulate(stateWithMoves("protect"), "move protect, move protect");
+    const redirection = simulate(stateWithMoves("followme"), "move followme, move protect");
+    const substitute = simulate(stateWithMoves("substitute"), "move substitute, move protect");
+    const helpingHand = simulate(
+      stateWithMoves("helpinghand", "thunderbolt"),
+      "move helpinghand -2, move thunderbolt 1"
+    );
+    const restricted = simulate(stateWithMoves("fakeout"), "move fakeout 1, move protect");
+
+    expect(protection.summary.tacticalEffects).toContainEqual(expect.objectContaining({ kind: "protection" }));
+    expect(redirection.summary.tacticalEffects).toContainEqual(expect.objectContaining({ kind: "redirection" }));
+    expect(substitute.summary.tacticalEffects).toContainEqual(expect.objectContaining({ kind: "substitute" }));
+    expect(helpingHand.summary.tacticalEffects).toContainEqual(expect.objectContaining({ kind: "ally-synergy" }));
+    expect(restricted.summary.tacticalEffects).toContainEqual(expect.objectContaining({ kind: "action-restriction" }));
+  });
 });
