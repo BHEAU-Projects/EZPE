@@ -10,7 +10,12 @@ describe("regulation data", () => {
   });
 
   it("returns Regulation M-B for mid-August 2026", () => {
-    expect(getCurrentRegulation(new Date("2026-08-15T00:00:00.000Z"))?.id).toBe("champions-m-b");
+    const regulation = getCurrentRegulation(new Date("2026-08-15T00:00:00.000Z"));
+    expect(regulation?.id).toBe("champions-m-b");
+    expect(regulation?.teamRules.openTeamSheets).toBe(false);
+    expect(regulation?.sources).toContainEqual(expect.objectContaining({
+      url: "https://champions-news.pokemon-home.com/en/page/776.html"
+    }));
   });
 
   it("starts with no manual Champions overrides", () => {

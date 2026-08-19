@@ -84,11 +84,12 @@ export const regulationSnapshots: RegulationSnapshot[] = [
     teamRules: {
       speciesClause: true,
       itemClause: true,
-      openTeamSheets: true,
+      openTeamSheets: false,
       megaEvolution: true
     },
     notes: [
       "First Pokemon Champions VGC regulation used for the launch era.",
+      "Ranked Battle analysis defaults to closed information; use the vgc-open-sheet battle context for open-sheet events.",
       "Detailed Pokemon, item, move, and Mega legality should be delegated to the pinned Pokemon Showdown format."
     ],
     sources: [
@@ -117,19 +118,20 @@ export const regulationSnapshots: RegulationSnapshot[] = [
     teamRules: {
       speciesClause: true,
       itemClause: true,
-      openTeamSheets: true,
+      openTeamSheets: false,
       megaEvolution: true
     },
     notes: [
       "Current regulation as of 2026-08-15.",
+      "Ranked Battle analysis defaults to closed information; use the vgc-open-sheet battle context for open-sheet events.",
       "Victory Road notes this end date changed from 2026-09-02 to 2026-09-09 during August updates.",
       "Detailed Pokemon, item, move, and Mega legality should be delegated to the pinned Pokemon Showdown format."
     ],
     sources: [
       {
-        label: "Pokemon Champions news index",
-        url: "https://champions.pokemon.com/en-us/news/",
-        retrievedOn: "2026-08-15"
+        label: "Official Pokemon Champions Regulation Set M-B",
+        url: "https://champions-news.pokemon-home.com/en/page/776.html",
+        retrievedOn: "2026-08-19"
       },
       {
         label: "Victory Road Pokemon Champions regulations",

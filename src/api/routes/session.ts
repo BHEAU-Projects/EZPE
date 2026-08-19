@@ -123,7 +123,14 @@ function rankPayload(session: BattleSession, top: number, maxOpponentPlans: numb
     outcomeSummary: result.outcomeSummary,
     scoreBreakdown: result.debug.scoreBreakdown,
     expectedScore: result.debug.opponentEvaluation.expectedScore,
-    worstCaseScore: result.debug.opponentEvaluation.worstCaseScore
+    worstCaseScore: result.debug.opponentEvaluation.worstCaseScore,
+    mechanicsExpectedScore: result.debug.opponentEvaluation.mechanicsExpectedScore,
+    scenarioMeanScore: result.debug.opponentEvaluation.scenarioMeanScore,
+    worstResponseScore: result.debug.opponentEvaluation.worstResponseScore,
+    branchAgreement: result.debug.opponentEvaluation.branchAgreement,
+    informationConfidence: result.debug.scoreBreakdown.informationConfidence,
+    opponentScenarioCount: result.debug.opponentEvaluation.responseCount,
+    worstOpponentChoice: result.debug.opponentEvaluation.worstOpponentChoice
   }));
 
   return {

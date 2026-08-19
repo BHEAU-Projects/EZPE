@@ -38,6 +38,9 @@ describe("Quick Capture server", () => {
     expect(battle.body).toContain("End Turn");
     expect(battle.body).toContain("Recommendations");
     expect(battle.body).toContain("Opponent scenarios");
+    expect(battle.body).toContain("scenario mean");
+    expect(battle.body).toContain("Branch floor");
+    expect(battle.body).toContain("Highest-damage enemy line");
     expect(battle.body).toContain("Manual corrections");
     expect(battle.body).toContain("Observed Effects");
     expect(battle.body).toContain('localStorage.getItem("ezpe-ranking-settings")');
@@ -248,7 +251,14 @@ describe("Quick Capture server", () => {
             totalCriticalMaxDamage: expect.any(Number)
           },
           expectedScore: expect.any(Number),
-          worstCaseScore: expect.any(Number)
+          worstCaseScore: expect.any(Number),
+          mechanicsExpectedScore: expect.any(Number),
+          scenarioMeanScore: expect.any(Number),
+          worstResponseScore: expect.any(Number),
+          branchAgreement: expect.any(Number),
+          informationConfidence: expect.any(Number),
+          opponentScenarioCount: 1,
+          worstOpponentChoice: expect.any(String)
         }
       ]
     });
@@ -256,7 +266,7 @@ describe("Quick Capture server", () => {
 
   it("keeps a representative warm recommendation below two seconds", async () => {
     const server = createApp();
-    const payload = { top: 1, maxOpponentPlans: 1 };
+    const payload = { top: 3, maxOpponentPlans: 4 };
     await server.inject({ method: "POST", url: "/api/rank", payload });
     const warm = await server.inject({ method: "POST", url: "/api/rank", payload });
 
