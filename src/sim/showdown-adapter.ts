@@ -159,6 +159,8 @@ export interface ShowdownItemChange {
   pokemon: string;
   before: string;
   after: string;
+  sourceSide?: PlayerSide;
+  cause?: "move" | "consumed" | "other";
 }
 
 export interface ShowdownForcedSwitch {
@@ -718,7 +720,7 @@ function summarizeSingleTurnOutcome(
   const faintedPokemon = hpByPokemon.filter(
     (pokemon) => pokemon.fainted && !initiallyFaintedSlots.has(pokemon.slot)
   );
-  const stateChanges = compareHydratedStates(initialState, finalState);
+  const stateChanges = compareHydratedStates(log, initialState, finalState);
   const actionOutcomes = parseActionOutcomes(log, initialState, finalState);
 
   return {
@@ -768,6 +770,7 @@ function summarizeSingleTurnOutcome(
 }
 
 function compareHydratedStates(
+  log: string[],
   initialState: HydratedBattleSummary | undefined,
   finalState: HydratedBattleSummary | undefined
 ): Pick<SingleTurnOutcomeSummary, "statusChanges" | "boostChanges" | "itemChanges"> {
@@ -777,6 +780,7 @@ function compareHydratedStates(
   if (!initialState || !finalState) return { statusChanges, boostChanges, itemChanges };
 
   const initialBySlot = new Map(initialState.pokemon.map((pokemon) => [pokemon.slot, pokemon]));
+  const itemEvents = parseItemEvents(log);
   for (const after of finalState.pokemon) {
     const before = initialBySlot.get(after.slot);
     if (!before || before.pokemon !== after.pokemon) continue;
@@ -805,17 +809,43 @@ function compareHydratedStates(
     }
 
     if (before.itemId !== after.itemId) {
+      const itemEvent = itemEvents.get(after.slot);
       itemChanges.push({
         side: after.side,
         slot: after.slot,
         pokemon: after.pokemon,
         before: before.itemId,
-        after: after.itemId
+        after: after.itemId,
+        ...(itemEvent?.sourceSide ? { sourceSide: itemEvent.sourceSide } : {}),
+        ...(itemEvent?.cause ? { cause: itemEvent.cause } : {})
       });
     }
   }
 
   return { statusChanges, boostChanges, itemChanges };
+}
+
+function parseItemEvents(
+  log: string[]
+): Map<string, { sourceSide?: PlayerSide; cause: "move" | "consumed" | "other" }> {
+  const events = new Map<string, { sourceSide?: PlayerSide; cause: "move" | "consumed" | "other" }>();
+  for (const line of log) {
+    if (!line.startsWith("|-enditem|") && !line.startsWith("|-item|")) continue;
+    const [, , label, , ...annotations] = line.split("|");
+    const parsed = parsePokemonLabel(label);
+    const source = annotations.find((annotation) => annotation.startsWith("[of] "))?.slice(5);
+    const sourceSide = source?.startsWith("p1") || source?.startsWith("p2")
+      ? parsePokemonLabel(source).side
+      : undefined;
+    const annotationText = annotations.join("|").toLowerCase();
+    const cause = annotationText.includes("[from] move:")
+      ? "move"
+      : annotationText.includes("[eat]") || annotationText.includes("[consumed]")
+        ? "consumed"
+        : "other";
+    events.set(parsed.slot, { ...(sourceSide ? { sourceSide } : {}), cause });
+  }
+  return events;
 }
 
 function parseActionOutcomes(

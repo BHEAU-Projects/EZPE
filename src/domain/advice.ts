@@ -12,7 +12,14 @@ export type ExplanationTag =
   | "speed-control"
   | "field-control"
   | "forced-switch"
-  | "miss-risk";
+  | "miss-risk"
+  | "healing"
+  | "order-swing"
+  | "useful-setup"
+  | "wasted-action"
+  | "ally-synergy"
+  | "item-denial"
+  | "residual-pressure";
 
 export interface ActionPlan {
   id: string;
@@ -24,6 +31,10 @@ export interface ActionPlan {
 export interface ScoreBreakdown {
   damageDealt: number;
   damageTaken: number;
+  damageDealtPercent: number;
+  damageTakenPercent: number;
+  healingReceivedPercent: number;
+  healingAllowedPercent: number;
   kosDealt: number;
   kosTaken: number;
   playerRemainingHp: number;
@@ -38,6 +49,14 @@ export interface ScoreBreakdown {
   fieldControl: number;
   sideConditionAdvantage: number;
   forcedSwitches: number;
+  effectiveSpeedSwings: number;
+  usefulBoostValue: number;
+  tacticalEffectValue: number;
+  wastedActions: number;
+  informationConfidence: number;
+  itemsRemoved: number;
+  residualPressure: number;
+  allySynergy: number;
 }
 
 export interface AdviceResult {
@@ -54,6 +73,10 @@ export interface AdviceResult {
       expectedScore: number;
       worstCaseScore: number;
       bestCaseScore: number;
+      mechanicsExpectedScore: number;
+      scenarioMeanScore: number;
+      worstResponseScore: number;
+      branchAgreement: number;
       responseCount: number;
       simulationCount: number;
       worstOpponentChoice: string;

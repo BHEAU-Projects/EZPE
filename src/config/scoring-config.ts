@@ -20,7 +20,20 @@ export const scoringConfigSchema = z
         speedControl: z.number().min(0).default(12),
         fieldControl: z.number().min(0).default(10),
         sideConditionAdvantage: z.number().min(0).default(15),
-        forcedSwitch: z.number().min(0).default(20)
+        forcedSwitch: z.number().min(0).default(20),
+        normalizedDamageDealt: z.number().min(0).default(1),
+        normalizedDamageTakenPenalty: z.number().min(0).default(1),
+        healingReceived: z.number().min(0).default(0.8),
+        healingAllowedPenalty: z.number().min(0).default(0.8),
+        usefulBoost: z.number().min(0).default(8),
+        speedOrderSwing: z.number().min(0).default(20),
+        fieldTurnAdvantage: z.number().min(0).default(10),
+        actionRestriction: z.number().min(0).default(25),
+        itemRemoval: z.number().min(0).default(20),
+        residualPressure: z.number().min(0).default(8),
+        wastedActionPenalty: z.number().min(0).default(25),
+        informationUncertaintyPenalty: z.number().min(0).default(5),
+        allySynergy: z.number().min(0).default(15)
       })
       .strict(),
     thresholds: z

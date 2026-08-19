@@ -28,7 +28,7 @@ describe("scoring configuration", () => {
   it("loads the checked-in grading configuration", () => {
     expect(loadScoringConfig()).toMatchObject({
       version: 1,
-      weights: { damageDealt: 1, koDealt: 100 },
+      weights: { damageDealt: 0, normalizedDamageDealt: 1, koDealt: 100 },
       opponentAggregation: { expectedWeight: 0.7, worstCaseWeight: 0.3 }
     });
   });

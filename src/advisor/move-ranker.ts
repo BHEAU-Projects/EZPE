@@ -30,8 +30,8 @@ export function rankMoves(battleState: BattleState, input: RankMovesInput): Advi
   const scoringConfig = scoringConfigStore.get();
   const stateCacheKey = JSON.stringify(battleState);
   const scoredResults = actionPlans.map((actionPlan) => {
-    const branches = opponentPlans.flatMap((opponentPlan) =>
-      seeds.map((seed) => {
+    const scenarios = opponentPlans.map((opponentPlan) => {
+      const branches = seeds.map((seed) => {
         const simulation = simulateActionPlan(
           battleState,
           actionPlan,
@@ -46,21 +46,34 @@ export function rankMoves(battleState: BattleState, input: RankMovesInput): Advi
           scoredOutcome: scoreSingleTurnOutcome(
             simulation,
             battleState.playerSide,
-            scoringConfig
+            scoringConfig,
+            battleState
           )
         };
-      })
+      });
+      return {
+        opponentPlan,
+        branches,
+        mechanicsExpectedScore: average(branches.map((branch) => branch.scoredOutcome.score)),
+        mechanicsWorstScore: Math.min(...branches.map((branch) => branch.scoredOutcome.score))
+      };
+    });
+    const allBranches = scenarios.flatMap((scenario) => scenario.branches);
+    const worstScenario = scenarios.reduce((worst, scenario) =>
+      scenario.mechanicsExpectedScore < worst.mechanicsExpectedScore ? scenario : worst
     );
-    const worstBranch = branches.reduce((worst, branch) =>
+    const worstBranch = worstScenario.branches.reduce((worst, branch) =>
       branch.scoredOutcome.score < worst.scoredOutcome.score ? branch : worst
     );
-    const scores = branches.map((branch) => branch.scoredOutcome.score);
-    const expectedScore = average(scores);
+    const scores = allBranches.map((branch) => branch.scoredOutcome.score);
+    const scenarioMeanScore = average(scenarios.map((scenario) => scenario.mechanicsExpectedScore));
+    const mechanicsExpectedScore = worstScenario.mechanicsExpectedScore;
+    const worstResponseScore = worstScenario.mechanicsExpectedScore;
     const worstCaseScore = Math.min(...scores);
     const bestCaseScore = Math.max(...scores);
     const aggregateScore =
-      expectedScore * scoringConfig.opponentAggregation.expectedWeight +
-      worstCaseScore * scoringConfig.opponentAggregation.worstCaseWeight;
+      scenarioMeanScore * scoringConfig.opponentAggregation.expectedWeight +
+      worstResponseScore * scoringConfig.opponentAggregation.worstCaseWeight;
 
     return {
       actionPlan,
@@ -68,14 +81,21 @@ export function rankMoves(battleState: BattleState, input: RankMovesInput): Advi
       simulation: worstBranch.simulation,
       breakdown: worstBranch.scoredOutcome.breakdown,
       explanationTags: worstBranch.scoredOutcome.explanationTags,
-      outcomeSummary: `expected score ${roundScore(expectedScore)}, worst case ${roundScore(worstCaseScore)}; ${worstBranch.scoredOutcome.outcomeSummary}`,
+      outcomeSummary: `mechanics expectation ${roundScore(mechanicsExpectedScore)}, scenario mean ${roundScore(scenarioMeanScore)}, worst response ${roundScore(worstResponseScore)}; ${worstBranch.scoredOutcome.outcomeSummary}`,
+      branchScores: scenarios.flatMap((scenario) =>
+        scenario.branches.map((branch) => branch.scoredOutcome.score)
+      ),
       opponentEvaluation: {
-        expectedScore,
+        expectedScore: scenarioMeanScore,
         worstCaseScore,
         bestCaseScore,
+        mechanicsExpectedScore,
+        scenarioMeanScore,
+        worstResponseScore,
+        branchAgreement: 0,
         responseCount: opponentPlans.length,
-        simulationCount: branches.length,
-        worstOpponentChoice: worstBranch.opponentPlan.showdownChoice
+        simulationCount: allBranches.length,
+        worstOpponentChoice: worstScenario.opponentPlan.showdownChoice
       }
     };
   });
@@ -94,6 +114,8 @@ export function rankMoves(battleState: BattleState, input: RankMovesInput): Advi
 
   return sortedResults.map((result, index) => {
     const nextBestScore = sortedResults[index + 1]?.score ?? result.score;
+    const branchAgreement = calculateBranchAgreement(result, sortedResults);
+    result.opponentEvaluation.branchAgreement = branchAgreement;
 
     return {
       rank: index + 1,
@@ -102,7 +124,9 @@ export function rankMoves(battleState: BattleState, input: RankMovesInput): Advi
       confidence: calculateConfidence(
         result.score,
         nextBestScore,
-        scoringConfig.confidenceScoreGap
+        scoringConfig.confidenceScoreGap,
+        branchAgreement,
+        result.breakdown.informationConfidence
       ),
       explanationTags: result.explanationTags,
       outcomeSummary: result.outcomeSummary,
@@ -295,8 +319,26 @@ function isValidCombinedPlan(actions: LegalAction[]): boolean {
   return actions.filter((action) => action.type === "move" && action.specialMechanic).length <= 1;
 }
 
-function calculateConfidence(score: number, nextBestScore: number, scoreGap: number): number {
-  return Math.min(1, Math.max(0, (score - nextBestScore) / scoreGap));
+function calculateConfidence(
+  score: number,
+  nextBestScore: number,
+  scoreGap: number,
+  branchAgreement: number,
+  informationConfidence: number
+): number {
+  const gapConfidence = Math.min(1, Math.max(0, (score - nextBestScore) / scoreGap));
+  return (gapConfidence + branchAgreement + informationConfidence) / 3;
+}
+
+function calculateBranchAgreement<T extends { branchScores: number[] }>(
+  result: T,
+  allResults: T[]
+): number {
+  if (result.branchScores.length === 0) return 0;
+  const wins = result.branchScores.filter((score, index) =>
+    score >= Math.max(...allResults.map((candidate) => candidate.branchScores[index] ?? -Infinity))
+  ).length;
+  return wins / result.branchScores.length;
 }
 
 function hasLivingActive(battleState: BattleState, side: PlayerSide): boolean {

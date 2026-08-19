@@ -31,6 +31,11 @@ describe("opponent response branching", () => {
     expect(evaluation.simulationCount).toBe(4);
     expect(evaluation.worstCaseScore).toBeLessThanOrEqual(evaluation.expectedScore);
     expect(evaluation.expectedScore).toBeLessThanOrEqual(evaluation.bestCaseScore);
+    expect(evaluation.worstCaseScore).toBeLessThanOrEqual(evaluation.worstResponseScore);
+    expect(evaluation.worstResponseScore).toBeLessThanOrEqual(evaluation.scenarioMeanScore);
+    expect(evaluation.mechanicsExpectedScore).toBe(evaluation.worstResponseScore);
+    expect(evaluation.branchAgreement).toBeGreaterThanOrEqual(0);
+    expect(evaluation.branchAgreement).toBeLessThanOrEqual(1);
     expect(evaluation.worstOpponentChoice).toMatch(/^move /);
   });
 
@@ -45,7 +50,9 @@ describe("opponent response branching", () => {
 
     expect(advice[0].debug.opponentEvaluation).toMatchObject({
       responseCount: 3,
-      simulationCount: 6
+      simulationCount: 6,
+      scenarioMeanScore: expect.any(Number),
+      worstResponseScore: expect.any(Number)
     });
   });
 
