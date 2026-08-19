@@ -114,6 +114,32 @@ describe("automatic timed effects", () => {
 
     expect(session.applyTurn(report).state.field.weather).toBeNull();
   });
+
+  it("stores deterministic volatile effects with Showdown durations and move memory", () => {
+    const encored = resolveMove("encore", "p2a", (battle) => {
+      const target = battle.teams.p2.active[0];
+      target.lastMoveId = "tackle";
+      target.lastMoveTurn = 1;
+      target.lastMoveResult = "hit";
+    });
+
+    expect(encored.teams.p2.active[0].volatileEffects).toContainEqual({
+      id: "encore",
+      turnsRemaining: 2,
+      sourceSlot: "p1a",
+      associatedMoveId: "tackle"
+    });
+  });
+
+  it("expires structured volatile durations at the next-turn boundary", () => {
+    const state = resolveMove("protect", "self", (battle) => {
+      battle.teams.p1.active[1].volatileEffectIds = ["focusenergy"];
+      battle.teams.p1.active[1].volatileEffects = [{ id: "focusenergy", turnsRemaining: 1 }];
+    });
+
+    expect(state.teams.p1.active[1].volatileEffectIds).not.toContain("focusenergy");
+    expect(state.teams.p1.active[1].volatileEffects).toEqual([]);
+  });
 });
 
 describe("contextual effect suggestions", () => {

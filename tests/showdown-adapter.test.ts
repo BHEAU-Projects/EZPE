@@ -139,6 +139,33 @@ describe("showdown adapter", () => {
     }
   });
 
+  it("hydrates active-turn, last-move, and structured volatile memory", () => {
+    const state = structuredClone(singleTurnBattleState);
+    const target = state.teams.p2.active[0];
+    target.turnsActive = 2;
+    target.lastMoveId = "tackle";
+    target.lastMoveTurn = 2;
+    target.lastMoveResult = "hit";
+    target.volatileEffectIds = ["encore"];
+    target.volatileEffects = [{
+      id: "encore",
+      turnsRemaining: 2,
+      sourceSlot: "p1a",
+      associatedMoveId: "tackle"
+    }];
+    const battle = createHydratedBattleFromState(state);
+
+    try {
+      expect(battle.p2.active[0]).toMatchObject({
+        activeMoveActions: 2,
+        lastMove: { id: "tackle" },
+        volatiles: { encore: { duration: 2, move: "tackle" } }
+      });
+    } finally {
+      battle.destroy();
+    }
+  });
+
   it("applies hydrated side conditions to turn mechanics", () => {
     const withoutReflect = structuredClone(singleTurnBattleState);
     const withReflect = structuredClone(singleTurnBattleState);

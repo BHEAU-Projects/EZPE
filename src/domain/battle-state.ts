@@ -57,6 +57,8 @@ export const hpMeasurementSchema = z.discriminatedUnion("unit", [
 
 export const battleFormatSchema = z.enum(["champions-vgc-doubles"]);
 
+export const battleContextSchema = z.enum(["ranked-closed", "vgc-open-sheet"]);
+
 export const playerSideSchema = z.enum(["p1", "p2"]);
 
 export const activeSlotSchema = z.enum(["p1a", "p1b", "p2a", "p2b"]);
@@ -83,6 +85,23 @@ export const statusConditionSchema = z.enum([
 ]);
 
 export const pokemonGenderSchema = z.enum(["M", "F", "N"]);
+
+export const lastMoveResultSchema = z.enum([
+  "hit",
+  "missed",
+  "failed",
+  "blocked",
+  "critical-hit"
+]);
+
+export const volatileEffectSchema = z
+  .object({
+    id: canonicalIdSchema,
+    turnsRemaining: z.number().int().min(0).max(16).optional(),
+    sourceSlot: activeSlotSchema.optional(),
+    associatedMoveId: canonicalIdSchema.optional()
+  })
+  .strict();
 
 export const statIds = ["hp", "atk", "def", "spa", "spd", "spe"] as const;
 export const maxStatPointsPerStat = 32;
@@ -206,11 +225,33 @@ export const activePokemonSchema = z
     status: statusConditionSchema.default("healthy"),
     boosts: statBoostsSchema.default(defaultStatBoosts),
     volatileEffectIds: z.array(canonicalIdSchema).default([]),
+    volatileEffects: z.array(volatileEffectSchema).default([]),
+    turnsActive: z.number().int().min(0).max(999).default(0),
+    lastMoveId: canonicalIdSchema.nullable().default(null),
+    lastMoveTurn: z.number().int().min(1).nullable().default(null),
+    lastMoveResult: lastMoveResultSchema.nullable().default(null),
     protectedThisTurn: z.boolean().default(false),
     protectStreak: z.number().int().min(0).max(6).default(0),
     ...pokemonRuntimeStateFields
   })
-  .strict();
+  .strict()
+  .superRefine((pokemon, ctx) => {
+    const ids = pokemon.volatileEffects.map((effect) => effect.id);
+    if (new Set(ids).size !== ids.length) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Structured volatile effects must have unique ids.",
+        path: ["volatileEffects"]
+      });
+    }
+    if ((pokemon.lastMoveId === null) !== (pokemon.lastMoveTurn === null)) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Last move id and turn must either both be present or both be null.",
+        path: ["lastMoveId"]
+      });
+    }
+  });
 
 export const benchPokemonSchema = z
   .object({
@@ -300,6 +341,7 @@ export const legalActionSchema = z.discriminatedUnion("type", [
 export const battleStateSchema = z
   .object({
     format: battleFormatSchema,
+    battleContext: battleContextSchema.default("ranked-closed"),
     regulationId: z.string().min(1),
     turnNumber: z.number().int().min(1),
     playerSide: playerSideSchema,
@@ -366,10 +408,13 @@ export const battleStateSchema = z
   });
 
 export type BattleFormat = z.infer<typeof battleFormatSchema>;
+export type BattleContext = z.infer<typeof battleContextSchema>;
 export type PlayerSide = z.infer<typeof playerSideSchema>;
 export type TargetSlot = z.infer<typeof targetSlotSchema>;
 export type StatusCondition = z.infer<typeof statusConditionSchema>;
 export type PokemonGender = z.infer<typeof pokemonGenderSchema>;
+export type LastMoveResult = z.infer<typeof lastMoveResultSchema>;
+export type VolatileEffect = z.infer<typeof volatileEffectSchema>;
 export type StatTable = z.infer<typeof statTableSchema>;
 export type StatPointTable = z.infer<typeof statPointTableSchema>;
 export type StatBoosts = z.infer<typeof statBoostsSchema>;
@@ -385,6 +430,16 @@ export type TeamState = z.infer<typeof teamStateSchema>;
 export type FieldState = z.infer<typeof fieldStateSchema>;
 export type LegalAction = z.infer<typeof legalActionSchema>;
 export type BattleState = z.infer<typeof battleStateSchema>;
+
+export function mergeVolatileEffects(
+  pokemon: Pick<ActivePokemon, "volatileEffectIds" | "volatileEffects">
+): VolatileEffect[] {
+  const merged = new Map(pokemon.volatileEffects.map((effect) => [effect.id, effect]));
+  for (const id of pokemon.volatileEffectIds) {
+    if (!merged.has(id)) merged.set(id, { id });
+  }
+  return [...merged.values()];
+}
 
 export const fixedChampionsIvs: StatTable = {
   hp: 31,

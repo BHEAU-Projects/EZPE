@@ -80,6 +80,11 @@ function createTeamState(
       status: "healthy",
       boosts: { atk: 0, def: 0, spa: 0, spd: 0, spe: 0, accuracy: 0, evasion: 0 },
       volatileEffectIds: [],
+      volatileEffects: [],
+      turnsActive: 0,
+      lastMoveId: null,
+      lastMoveTurn: null,
+      lastMoveResult: null,
       protectedThisTurn: false,
       protectStreak: 0
     })),

@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   activeSlotSchema,
   fieldStateSchema,
+  lastMoveResultSchema,
   legalActionSchema,
   playerSideSchema,
   sideConditionsSchema,
@@ -158,6 +159,23 @@ export const moveObservedEventSchema = z
   })
   .strict();
 
+export const moveMemoryUpdatedEventSchema = z
+  .object({
+    type: z.literal("move-memory-updated"),
+    slot: activeSlotSchema,
+    moveId: z.string().min(1).regex(/^[a-z0-9]+$/),
+    turnNumber: z.number().int().min(1),
+    result: lastMoveResultSchema
+  })
+  .strict();
+
+export const activeTurnAdvancedEventSchema = z
+  .object({
+    type: z.literal("active-turn-advanced"),
+    slot: activeSlotSchema
+  })
+  .strict();
+
 export const volatilesChangedEventSchema = z
   .object({
     type: z.literal("volatiles-changed"),
@@ -207,6 +225,8 @@ export const battleEventSchema = z.discriminatedUnion("type", [
   itemChangedEventSchema,
   abilityChangedEventSchema,
   moveObservedEventSchema,
+  moveMemoryUpdatedEventSchema,
+  activeTurnAdvancedEventSchema,
   movePpChangedEventSchema,
   volatilesChangedEventSchema,
   specialMechanicUsedEventSchema,
@@ -225,6 +245,8 @@ export type BoostsChangedEvent = z.infer<typeof boostsChangedEventSchema>;
 export type ItemChangedEvent = z.infer<typeof itemChangedEventSchema>;
 export type AbilityChangedEvent = z.infer<typeof abilityChangedEventSchema>;
 export type MoveObservedEvent = z.infer<typeof moveObservedEventSchema>;
+export type MoveMemoryUpdatedEvent = z.infer<typeof moveMemoryUpdatedEventSchema>;
+export type ActiveTurnAdvancedEvent = z.infer<typeof activeTurnAdvancedEventSchema>;
 export type MovePpChangedEvent = z.infer<typeof movePpChangedEventSchema>;
 export type VolatilesChangedEvent = z.infer<typeof volatilesChangedEventSchema>;
 export type SpecialMechanicUsedEvent = z.infer<typeof specialMechanicUsedEventSchema>;

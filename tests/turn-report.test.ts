@@ -69,7 +69,11 @@ describe("atomic turn application", () => {
     expect(resolution.state.teams.p1.active[0]).toMatchObject({
       hp: { unit: "exact", current: 95, max: 110 },
       status: "par",
-      movePp: { thunderbolt: 14 }
+      movePp: { thunderbolt: 14 },
+      turnsActive: 1,
+      lastMoveId: "thunderbolt",
+      lastMoveTurn: 1,
+      lastMoveResult: "hit"
     });
     expect(resolution.state.teams.p2.active[1].set.moveKnowledge).toMatchObject({
       observedMoveIds: ["scratch"]
@@ -100,6 +104,12 @@ describe("atomic turn application", () => {
       status: "healthy",
       fainted: false
     }];
+    state.teams.p1.active[0].turnsActive = 3;
+    state.teams.p1.active[0].lastMoveId = "protect";
+    state.teams.p1.active[0].lastMoveTurn = 1;
+    state.teams.p1.active[0].lastMoveResult = "hit";
+    state.teams.p1.active[0].volatileEffectIds = ["focusenergy"];
+    state.teams.p1.active[0].volatileEffects = [{ id: "focusenergy" }];
     const report = validTurnReport();
     report.actions[0] = { type: "switch", activeSlot: "p1a", benchSlot: 0 };
     report.hp[0] = { slot: "p1a", remainingHp: { unit: "exact", current: 77 } };
@@ -107,12 +117,23 @@ describe("atomic turn application", () => {
     const resolution = createBattleSession(state).applyTurn(report);
     expect(resolution.state.teams.p1.active[0]).toMatchObject({
       set: { speciesId: "squirtle" },
-      hp: { unit: "exact", current: 77, max: incomingSet.stats.hp }
+      hp: { unit: "exact", current: 77, max: incomingSet.stats.hp },
+      turnsActive: 0,
+      lastMoveId: null,
+      volatileEffects: []
     });
     expect(resolution.state.teams.p1.bench[0]).toMatchObject({
       set: { speciesId: "pikachu" },
       hp: { unit: "exact", current: 110, max: 110 }
     });
+  });
+
+  it("records visible misses as the last move result", () => {
+    const report = validTurnReport();
+    report.confirmedEffects.push({ kind: "move-result", slot: "p1a", result: "missed" });
+
+    const state = createBattleSession(singleTurnBattleState).applyTurn(report).state;
+    expect(state.teams.p1.active[0].lastMoveResult).toBe("missed");
   });
 
   it("rejects a stale turn report without changing state", () => {

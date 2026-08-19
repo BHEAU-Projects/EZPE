@@ -9,6 +9,7 @@ import type {
   StatBoosts,
   TeamState
 } from "../domain/battle-state.js";
+import { mergeVolatileEffects, type VolatileEffect } from "../domain/battle-state.js";
 
 const { toID } = PokemonShowdown;
 
@@ -25,6 +26,9 @@ export interface HydratedPokemonSummary {
   abilityId: string;
   movePp: Record<string, number>;
   volatileEffectIds: string[];
+  volatileEffects: VolatileEffect[];
+  turnsActive: number;
+  lastMoveId: string | null;
 }
 
 export interface HydratedBattleSummary {
@@ -60,9 +64,24 @@ export function hydrateBattleState(battle: Battle, state: BattleState): Hydrated
   hydrateSideConditions(battle, state);
   hydrateField(battle, state);
   hydrateSpecialMechanics(battle, state);
+  refreshDisabledMoves(battle);
   battle.turn = state.turnNumber;
 
   return captureHydratedBattleState(battle);
+}
+
+function refreshDisabledMoves(battle: Battle): void {
+  for (const pokemon of battle.getAllActive()) {
+    for (const moveSlot of pokemon.moveSlots) {
+      moveSlot.disabled = false;
+      moveSlot.disabledSource = "";
+    }
+    battle.runEvent("DisableMove", pokemon);
+    for (const moveSlot of pokemon.moveSlots) {
+      const activeMove = battle.dex.getActiveMove(moveSlot.id);
+      battle.singleEvent("DisableMove", activeMove, null, pokemon);
+    }
+  }
 }
 
 export function toShowdownCurrentHp(hp: HpMeasurement, showdownMaxHp: number): number {
@@ -102,7 +121,18 @@ export function captureHydratedBattleState(battle: Battle): HydratedBattleSummar
         itemId: member.item,
         abilityId: member.ability,
         movePp: Object.fromEntries(member.moveSlots.map((move) => [move.id, move.pp])),
-        volatileEffectIds: Object.keys(member.volatiles).sort()
+        volatileEffectIds: Object.keys(member.volatiles).sort(),
+        volatileEffects: Object.entries(member.volatiles).map(([id, rawEffect]) => {
+          const effect = rawEffect as typeof rawEffect & { move?: string; source?: typeof member };
+          return {
+            id,
+            ...(effect.duration === undefined ? {} : { turnsRemaining: effect.duration }),
+            ...(effect.source ? { sourceSlot: slotForPokemon(battle, effect.source) } : {}),
+            ...(effect.move ? { associatedMoveId: effect.move } : {})
+          };
+        }),
+        turnsActive: member.activeMoveActions,
+        lastMoveId: member.lastMove?.id ?? null
       });
     });
   }
@@ -155,6 +185,17 @@ function hydratePokemon(battle: Battle, state: BattleState): void {
       pokemon.ability = toID(observed.currentAbilityId ?? observed.set.abilityId);
       pokemon.abilityState = battle.initEffectState({ id: pokemon.ability, target: pokemon });
 
+      if ("turnsActive" in observed) {
+        pokemon.activeTurns = observed.turnsActive;
+        pokemon.activeMoveActions = observed.turnsActive;
+      }
+      if ("lastMoveId" in observed && observed.lastMoveId) {
+        const lastMove = battle.dex.getActiveMove(observed.lastMoveId);
+        pokemon.lastMove = lastMove;
+        pokemon.lastMoveUsed = lastMove;
+        pokemon.lastMoveEncore = lastMove;
+      }
+
       for (const [moveId, remainingPp] of Object.entries(observed.movePp ?? {})) {
         const moveSlot = pokemon.moveSlots.find((move) => move.id === toID(moveId));
         if (!moveSlot) throw new Error(`${observed.set.speciesId} does not know ${moveId}.`);
@@ -166,17 +207,28 @@ function hydratePokemon(battle: Battle, state: BattleState): void {
 
       pokemon.volatiles = {};
       if ("volatileEffectIds" in observed) {
-        const volatileIds = new Set(observed.volatileEffectIds);
-        if (observed.protectedThisTurn) volatileIds.add("protect");
+        const volatileEffects = new Map(
+          mergeVolatileEffects(observed).map((effect) => [effect.id, effect])
+        );
+        if (observed.protectedThisTurn && !volatileEffects.has("protect")) {
+          volatileEffects.set("protect", { id: "protect" });
+        }
 
-        for (const volatileId of volatileIds) {
-          const condition = battle.dex.conditions.get(volatileId);
-          if (!condition.exists) throw new Error(`Unknown volatile effect: ${volatileId}`);
-          pokemon.volatiles[condition.id] = battle.initEffectState({
+        for (const effect of volatileEffects.values()) {
+          const condition = battle.dex.conditions.get(effect.id);
+          if (!condition.exists) throw new Error(`Unknown volatile effect: ${effect.id}`);
+          const source = effect.sourceSlot ? pokemonForSlot(battle, effect.sourceSlot) : undefined;
+          const effectState = battle.initEffectState({
             id: condition.id,
             target: pokemon,
-            duration: condition.duration
+            source,
+            duration: effect.turnsRemaining ?? condition.duration
           });
+          if (effect.associatedMoveId) effectState.move = effect.associatedMoveId;
+          if (condition.id === "substitute" && effectState.hp === undefined) {
+            effectState.hp = Math.floor(pokemon.maxhp / 4);
+          }
+          pokemon.volatiles[condition.id] = effectState;
         }
 
         if (observed.protectStreak > 0) {
@@ -194,6 +246,18 @@ function hydratePokemon(battle: Battle, state: BattleState): void {
 
     showdownSide.pokemonLeft = showdownSide.pokemon.filter((pokemon) => !pokemon.fainted).length;
   }
+}
+
+function pokemonForSlot(battle: Battle, slot: string): Battle["p1"]["active"][number] | undefined {
+  if (!/^(p1|p2)[ab]$/.test(slot)) return undefined;
+  const side = slot.startsWith("p1") ? battle.p1 : battle.p2;
+  return side.active[slot.endsWith("a") ? 0 : 1];
+}
+
+function slotForPokemon(battle: Battle, pokemon: Battle["p1"]["active"][number]): ActivePokemon["slot"] {
+  const sideId = pokemon.side === battle.p1 ? "p1" : "p2";
+  const activeIndex = pokemon.side.active.indexOf(pokemon);
+  return `${sideId}${activeIndex === 1 ? "b" : "a"}`;
 }
 
 function hydrateSideConditions(battle: Battle, state: BattleState): void {

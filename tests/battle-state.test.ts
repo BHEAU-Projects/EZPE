@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   battleStateSchema,
   legacyEvsToStatPoints,
+  mergeVolatileEffects,
   statPointsToLegacyEvs,
   type BattleState
 } from "../src/domain/battle-state.js";
@@ -20,6 +21,7 @@ const emptyStatPoints = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
 
 const validBattleState: BattleState = {
   format: "champions-vgc-doubles",
+  battleContext: "ranked-closed",
   regulationId: "development",
   turnNumber: 1,
   playerSide: "p1",
@@ -52,6 +54,11 @@ const validBattleState: BattleState = {
             evasion: 0
           },
           volatileEffectIds: [],
+          volatileEffects: [],
+          turnsActive: 0,
+          lastMoveId: null,
+          lastMoveTurn: null,
+          lastMoveResult: null,
           protectedThisTurn: false,
           protectStreak: 0
         },
@@ -80,6 +87,11 @@ const validBattleState: BattleState = {
             evasion: 0
           },
           volatileEffectIds: [],
+          volatileEffects: [],
+          turnsActive: 0,
+          lastMoveId: null,
+          lastMoveTurn: null,
+          lastMoveResult: null,
           protectedThisTurn: false,
           protectStreak: 0
         }
@@ -125,6 +137,11 @@ const validBattleState: BattleState = {
             evasion: 0
           },
           volatileEffectIds: [],
+          volatileEffects: [],
+          turnsActive: 0,
+          lastMoveId: null,
+          lastMoveTurn: null,
+          lastMoveResult: null,
           protectedThisTurn: false,
           protectStreak: 0
         }
@@ -181,6 +198,32 @@ describe("battleStateSchema", () => {
 
   it("accepts a valid minimal Doubles/VGC battle state", () => {
     expect(battleStateSchema.safeParse(validBattleState).success).toBe(true);
+  });
+
+  it("defaults new battle memory when parsing an older saved state", () => {
+    const legacy = structuredClone(validBattleState) as unknown as Record<string, any>;
+    delete legacy.battleContext;
+    for (const team of Object.values(legacy.teams) as Array<Record<string, any>>) {
+      for (const pokemon of team.active) {
+        delete pokemon.volatileEffects;
+        delete pokemon.turnsActive;
+        delete pokemon.lastMoveId;
+        delete pokemon.lastMoveTurn;
+        delete pokemon.lastMoveResult;
+      }
+    }
+    legacy.teams.p1.active[0].volatileEffectIds = ["focusenergy"];
+
+    const parsed = battleStateSchema.parse(legacy);
+    expect(parsed.battleContext).toBe("ranked-closed");
+    expect(parsed.teams.p1.active[0]).toMatchObject({
+      volatileEffects: [],
+      turnsActive: 0,
+      lastMoveId: null,
+      lastMoveTurn: null,
+      lastMoveResult: null
+    });
+    expect(mergeVolatileEffects(parsed.teams.p1.active[0])).toEqual([{ id: "focusenergy" }]);
   });
 
   it("rejects a state missing format", () => {

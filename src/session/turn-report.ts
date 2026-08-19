@@ -9,6 +9,7 @@ import {
   targetSlotSchema,
   type ActivePokemon,
   type BattleState,
+  type LastMoveResult,
   type PlayerSide
 } from "../domain/battle-state.js";
 import { pokemonDataService } from "../data/pokemon-data-service.js";
@@ -176,7 +177,13 @@ export function applyTurnReport(state: BattleState, report: TurnReport): Applied
 
   for (const action of parsedReport.actions) {
     if (action.type !== "move") continue;
-    recordObservedMove(nextState, action, apply);
+    recordObservedMove(
+      nextState,
+      action,
+      currentState.turnNumber,
+      observedMoveResult(parsedReport, action.activeSlot),
+      apply
+    );
   }
 
   for (const action of parsedReport.actions) {
@@ -191,6 +198,11 @@ export function applyTurnReport(state: BattleState, report: TurnReport): Applied
 
   for (const observation of parsedReport.hp) {
     apply({ type: "damage-observed", slot: observation.slot, remainingHp: observation.remainingHp });
+  }
+
+  for (const action of parsedReport.actions) {
+    if (action.type === "switch") continue;
+    apply({ type: "active-turn-advanced", slot: action.activeSlot });
   }
 
   nextState = applyAutomaticTurnEffects(currentState, nextState, parsedReport);
@@ -231,6 +243,8 @@ function assertRequiredSlots(state: BattleState, report: TurnReport): void {
 function recordObservedMove(
   state: BattleState,
   action: Extract<ObservedAction, { type: "move" }>,
+  turnNumber: number,
+  result: LastMoveResult,
   apply: (event: BattleEvent) => void
 ): void {
   const side = action.activeSlot.slice(0, 2) as PlayerSide;
@@ -250,9 +264,27 @@ function recordObservedMove(
     apply({ type: "move-observed", slot: action.activeSlot, moveId: action.moveId });
   }
 
+  apply({
+    type: "move-memory-updated",
+    slot: action.activeSlot,
+    moveId: action.moveId,
+    turnNumber,
+    result
+  });
+
   if (action.specialMechanic) {
     apply({ type: "special-mechanic-used", slot: action.activeSlot, kind: action.specialMechanic.kind });
   }
+}
+
+function observedMoveResult(
+  report: TurnReport,
+  slot: ActivePokemon["slot"]
+): LastMoveResult {
+  const result = report.confirmedEffects.find(
+    (effect) => effect.kind === "move-result" && effect.slot === slot
+  );
+  return result?.kind === "move-result" ? result.result : "hit";
 }
 
 function confirmedEffectToEvent(effect: ConfirmedEffect): BattleEvent | null {

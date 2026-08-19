@@ -15,6 +15,7 @@ const emptyBoosts = {
 
 export const singleTurnBattleState: BattleState = {
   format: "champions-vgc-doubles",
+  battleContext: "ranked-closed",
   regulationId: "development",
   turnNumber: 1,
   playerSide: "p1",
@@ -39,6 +40,11 @@ export const singleTurnBattleState: BattleState = {
           status: "healthy",
           boosts: emptyBoosts,
           volatileEffectIds: [],
+          volatileEffects: [],
+          turnsActive: 0,
+          lastMoveId: null,
+          lastMoveTurn: null,
+          lastMoveResult: null,
           protectedThisTurn: false,
           protectStreak: 0
         },
@@ -59,6 +65,11 @@ export const singleTurnBattleState: BattleState = {
           status: "healthy",
           boosts: emptyBoosts,
           volatileEffectIds: [],
+          volatileEffects: [],
+          turnsActive: 0,
+          lastMoveId: null,
+          lastMoveTurn: null,
+          lastMoveResult: null,
           protectedThisTurn: false,
           protectStreak: 0
         }
@@ -96,6 +107,11 @@ export const singleTurnBattleState: BattleState = {
           status: "healthy",
           boosts: emptyBoosts,
           volatileEffectIds: [],
+          volatileEffects: [],
+          turnsActive: 0,
+          lastMoveId: null,
+          lastMoveTurn: null,
+          lastMoveResult: null,
           protectedThisTurn: false,
           protectStreak: 0
         },
@@ -116,6 +132,11 @@ export const singleTurnBattleState: BattleState = {
           status: "healthy",
           boosts: emptyBoosts,
           volatileEffectIds: [],
+          volatileEffects: [],
+          turnsActive: 0,
+          lastMoveId: null,
+          lastMoveTurn: null,
+          lastMoveResult: null,
           protectedThisTurn: false,
           protectStreak: 0
         }

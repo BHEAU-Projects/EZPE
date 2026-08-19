@@ -54,6 +54,52 @@ describe("legal action generator", () => {
     expect(pikachuActions[0]).toMatchObject({ type: "move", moveId: "protect" });
   });
 
+  it("only offers Fake Out and First Impression before another active turn", () => {
+    const fakeOutState = structuredClone(singleTurnBattleState);
+    Object.assign(fakeOutState.teams.p1.active[0].set, {
+      speciesId: "incineroar",
+      abilityId: "intimidate",
+      moveIds: ["fakeout", "protect"]
+    });
+    const firstTurnMoves = generateLegalActions(fakeOutState)
+      .flatMap((action) => action.activeSlot === "p1a" && action.type === "move" ? [action.moveId] : []);
+    fakeOutState.teams.p1.active[0].turnsActive = 1;
+    const laterMoves = generateLegalActions(fakeOutState)
+      .flatMap((action) => action.activeSlot === "p1a" && action.type === "move" ? [action.moveId] : []);
+
+    const impressionState = structuredClone(singleTurnBattleState);
+    Object.assign(impressionState.teams.p1.active[0].set, {
+      speciesId: "lokix",
+      abilityId: "swarm",
+      moveIds: ["firstimpression", "protect"]
+    });
+    impressionState.teams.p1.active[0].turnsActive = 1;
+    const laterImpressionMoves = generateLegalActions(impressionState)
+      .flatMap((action) => action.activeSlot === "p1a" && action.type === "move" ? [action.moveId] : []);
+
+    expect(firstTurnMoves).toContain("fakeout");
+    expect(laterMoves).not.toContain("fakeout");
+    expect(laterImpressionMoves).not.toContain("firstimpression");
+  });
+
+  it("hydrates Encore, Disable, and Torment move restrictions", () => {
+    const withRestriction = (id: "encore" | "disable" | "torment") => {
+      const state = structuredClone(singleTurnBattleState);
+      const pokemon = state.teams.p1.active[0];
+      pokemon.lastMoveId = "thunderbolt";
+      pokemon.lastMoveTurn = 1;
+      pokemon.lastMoveResult = "hit";
+      pokemon.volatileEffectIds = [id];
+      pokemon.volatileEffects = [{ id, associatedMoveId: "thunderbolt", turnsRemaining: 2 }];
+      return generateLegalActions(state)
+        .flatMap((action) => action.activeSlot === "p1a" && action.type === "move" ? [action.moveId] : []);
+    };
+
+    expect(withRestriction("encore")).toEqual(["thunderbolt", "thunderbolt"]);
+    expect(withRestriction("disable")).toEqual(["protect"]);
+    expect(withRestriction("torment")).toEqual(["protect"]);
+  });
+
   it("generates switch actions with correct Showdown team positions", () => {
     const plans = generateActionPlans(stateWithBenchPokemon());
     const pikachuSwitch = plans.find(

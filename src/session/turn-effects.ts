@@ -8,7 +8,8 @@ import {
   type PlayerSide,
   type SideConditions,
   type StatBoosts,
-  type StatusCondition
+  type StatusCondition,
+  type VolatileEffect
 } from "../domain/battle-state.js";
 import {
   createHydratedBattleFromState,
@@ -51,7 +52,9 @@ interface MoveEffectData {
   stallingMove?: boolean;
   status?: string;
   boosts?: Partial<StatBoosts>;
-  self?: { boosts?: Partial<StatBoosts> };
+  volatileStatus?: string;
+  condition?: { duration?: number };
+  self?: { boosts?: Partial<StatBoosts>; volatileStatus?: string };
   secondary?: SecondaryEffectData | null;
   secondaries?: SecondaryEffectData[] | null;
 }
@@ -61,8 +64,10 @@ interface SecondaryEffectData {
   status?: string;
   volatileStatus?: string;
   boosts?: Partial<StatBoosts>;
-  self?: { boosts?: Partial<StatBoosts> };
+  self?: { boosts?: Partial<StatBoosts>; volatileStatus?: string };
 }
+
+const moveAssociatedVolatileIds = new Set(["disable", "encore", "torment"]);
 
 export function applyAutomaticTurnEffects(
   beforeTurn: BattleState,
@@ -87,14 +92,126 @@ export function applyAutomaticTurnEffects(
 
     const summary = captureHydratedBattleState(battle);
     const nextState = structuredClone(observedState);
+    advanceStructuredVolatiles(nextState);
     nextState.field = fieldFromShowdownSummary(summary);
     nextState.teams.p1.sideConditions = sideConditionsFromShowdownSummary(summary.sideConditions.p1);
     nextState.teams.p2.sideConditions = sideConditionsFromShowdownSummary(summary.sideConditions.p2);
+    applyDeterministicVolatileEffects(nextState, beforeTurn, report, battle, suppressedSlots);
     updateProtectStreaks(beforeTurn, nextState, report, battle);
     return battleStateSchema.parse(nextState);
   } finally {
     battle.destroy();
   }
+}
+
+function advanceStructuredVolatiles(state: BattleState): void {
+  for (const side of ["p1", "p2"] as const) {
+    for (const pokemon of state.teams[side].active) {
+      const expired = new Set<string>();
+      pokemon.volatileEffects = pokemon.volatileEffects.flatMap((effect) => {
+        if (effect.turnsRemaining === undefined) return [effect];
+        if (effect.turnsRemaining <= 1) {
+          expired.add(effect.id);
+          return [];
+        }
+        return [{ ...effect, turnsRemaining: effect.turnsRemaining - 1 }];
+      });
+      pokemon.volatileEffectIds = pokemon.volatileEffectIds.filter((id) => !expired.has(id));
+    }
+  }
+}
+
+function applyDeterministicVolatileEffects(
+  state: BattleState,
+  memoryState: BattleState,
+  report: TurnReport,
+  battle: ReturnType<typeof createHydratedBattleFromState>,
+  suppressedSlots: Set<string>
+): void {
+  for (const action of report.actions) {
+    if (action.type !== "move" || suppressedSlots.has(action.activeSlot)) continue;
+    const move = battle.dex.moves.get(action.moveId) as unknown as MoveEffectData;
+    const targets = resolveEffectTargetSlots(state, action);
+
+    if (move.volatileStatus) {
+      for (const slot of targets) {
+        addVolatileFromMove(state, memoryState, slot, move.volatileStatus, action, battle, move);
+      }
+    }
+    if (move.self?.volatileStatus) {
+      addVolatileFromMove(
+        state,
+        memoryState,
+        action.activeSlot,
+        move.self.volatileStatus,
+        action,
+        battle,
+        move
+      );
+    }
+
+    const secondaries = move.secondaries ?? (move.secondary ? [move.secondary] : []);
+    for (const secondary of secondaries) {
+      if ((secondary.chance ?? 100) < 100) continue;
+      if (secondary.volatileStatus) {
+        for (const slot of targets) {
+          addVolatileFromMove(
+            state,
+            memoryState,
+            slot,
+            secondary.volatileStatus,
+            action,
+            battle,
+            move
+          );
+        }
+      }
+      if (secondary.self?.volatileStatus) {
+        addVolatileFromMove(
+          state,
+          memoryState,
+          action.activeSlot,
+          secondary.self.volatileStatus,
+          action,
+          battle,
+          move
+        );
+      }
+    }
+  }
+}
+
+function addVolatileFromMove(
+  state: BattleState,
+  memoryState: BattleState,
+  targetSlot: ActivePokemon["slot"],
+  volatileId: string,
+  action: Extract<ObservedAction, { type: "move" }>,
+  battle: ReturnType<typeof createHydratedBattleFromState>,
+  move: MoveEffectData
+): void {
+  const target = findActive(state, targetSlot);
+  if (!target) return;
+  const condition = battle.dex.conditions.get(volatileId);
+  if (!condition.exists) return;
+  const initialDuration = move.condition?.duration ?? condition.duration;
+  const turnsRemaining = initialDuration === undefined ? undefined : Math.max(0, initialDuration - 1);
+  if (turnsRemaining === 0) return;
+
+  const effect: VolatileEffect = {
+    id: condition.id,
+    sourceSlot: action.activeSlot,
+    ...(turnsRemaining === undefined ? {} : { turnsRemaining })
+  };
+  const priorTarget = findActive(memoryState, targetSlot);
+  if (moveAssociatedVolatileIds.has(condition.id) && priorTarget?.lastMoveId) {
+    effect.associatedMoveId = priorTarget.lastMoveId;
+  }
+
+  const existingIndex = target.volatileEffects.findIndex((candidate) => candidate.id === effect.id);
+  if (existingIndex >= 0) target.volatileEffects[existingIndex] = effect;
+  else target.volatileEffects.push(effect);
+  if (!target.volatileEffectIds.includes(effect.id)) target.volatileEffectIds.push(effect.id);
 }
 
 export function suggestTurnEffects(

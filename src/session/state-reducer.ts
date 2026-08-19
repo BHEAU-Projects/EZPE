@@ -102,6 +102,20 @@ export function applyBattleEvent(state: BattleState, event: BattleEvent): Battle
       applyObservedMove(nextState, parsedEvent.slot, parsedEvent.moveId);
       break;
 
+    case "move-memory-updated": {
+      const pokemon = findActivePokemon(nextState, parsedEvent.slot);
+      pokemon.lastMoveId = parsedEvent.moveId;
+      pokemon.lastMoveTurn = parsedEvent.turnNumber;
+      pokemon.lastMoveResult = parsedEvent.result;
+      break;
+    }
+
+    case "active-turn-advanced": {
+      const pokemon = findActivePokemon(nextState, parsedEvent.slot);
+      pokemon.turnsActive = Math.min(999, pokemon.turnsActive + 1);
+      break;
+    }
+
     case "move-pp-changed": {
       const pokemon = findActivePokemon(nextState, parsedEvent.slot);
       if (!pokemon.set.moveIds.includes(parsedEvent.moveId)) {
@@ -112,8 +126,7 @@ export function applyBattleEvent(state: BattleState, event: BattleEvent): Battle
     }
 
     case "volatiles-changed":
-      findActivePokemon(nextState, parsedEvent.slot).volatileEffectIds =
-        parsedEvent.volatileEffectIds;
+      updateVolatiles(findActivePokemon(nextState, parsedEvent.slot), parsedEvent.volatileEffectIds);
       break;
 
     case "special-mechanic-used": {
@@ -187,6 +200,11 @@ function applySwitch(
     status: incomingPokemon.status,
     boosts: structuredClone(emptyBoosts),
     volatileEffectIds: [],
+    volatileEffects: [],
+    turnsActive: 0,
+    lastMoveId: null,
+    lastMoveTurn: null,
+    lastMoveResult: null,
     protectedThisTurn: false,
     protectStreak: 0,
     currentItemId: incomingPokemon.currentItemId,
@@ -204,6 +222,12 @@ function applySwitch(
     currentAbilityId: outgoingPokemon.currentAbilityId,
     movePp: outgoingPokemon.movePp
   };
+}
+
+function updateVolatiles(pokemon: ActivePokemon, volatileEffectIds: string[]): void {
+  const existing = new Map(pokemon.volatileEffects.map((effect) => [effect.id, effect]));
+  pokemon.volatileEffectIds = [...new Set(volatileEffectIds)];
+  pokemon.volatileEffects = pokemon.volatileEffectIds.map((id) => existing.get(id) ?? { id });
 }
 
 function applyObservedMove(
