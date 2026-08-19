@@ -1,4 +1,3 @@
-import PokemonShowdown from "pokemon-showdown";
 import { describe, expect, it } from "vitest";
 
 import { generateLegalActions } from "../src/advisor/legal-action-generator.js";
@@ -9,8 +8,7 @@ import {
   createSingleTurnSimulationInputFromBattleState,
   simulateSingleTurn
 } from "../src/sim/showdown-adapter.js";
-
-const { Dex } = PokemonShowdown;
+import { Dex } from "../src/sim/showdown-runtime.js";
 
 function simulate(
   state: typeof singleTurnBattleState,

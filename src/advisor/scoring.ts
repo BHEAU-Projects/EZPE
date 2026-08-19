@@ -1,11 +1,8 @@
-import PokemonShowdown from "pokemon-showdown";
-
 import type { ExplanationTag, ScoreBreakdown } from "../domain/advice.js";
 import type { BattleState, PlayerSide } from "../domain/battle-state.js";
 import type { SingleTurnSimulationResult } from "../sim/showdown-adapter.js";
+import { Dex } from "../sim/showdown-runtime.js";
 import { scoringConfigStore, type ScoringConfig } from "../config/scoring-config.js";
-
-const { Dex } = PokemonShowdown;
 
 export interface ScoredOutcome {
   score: number;

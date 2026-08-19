@@ -1,7 +1,5 @@
 import { readFileSync } from "node:fs";
 
-import PokemonShowdown from "pokemon-showdown";
-
 import {
   defaultStatPoints,
   legacyEvsToStatPoints,
@@ -12,8 +10,7 @@ import {
 import { pokemonDataService } from "../data/pokemon-data-service.js";
 import { getRegulationById } from "../data/regulations.js";
 import { usageMovesetStore } from "../data/usage-movesets.js";
-
-const { Teams } = PokemonShowdown;
+import { Teams } from "../sim/showdown-runtime.js";
 
 export function importTeamFile(path: string, regulationId: string): PokemonSet[] {
   return importTeam(readFileSync(path, "utf8"), regulationId);
@@ -63,7 +60,9 @@ export function importTeam(
     const abilityId = pokemonDataService.canonicalId(
       rawSet.ability || species.abilityIds[0] || ""
     );
-    const importedMoveIds = rawSet.moves.map((move) => pokemonDataService.canonicalId(move));
+    const importedMoveIds = (rawSet.moves ?? []).map((move) =>
+      pokemonDataService.canonicalId(move)
+    );
     const popularMoveset = usePopularOpponentMoves
       ? usageMovesetStore.getPopularMoveIds(regulationId, speciesId)
       : undefined;

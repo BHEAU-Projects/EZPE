@@ -297,6 +297,17 @@ milestone and linked to their checkpoint commits.
 - Preserved global action positions for misses and pre-action faints in Showdown
   outcome summaries, with presenter, API, simulator, and browser regression tests.
 
+### Public release preparation
+
+- Replaced the full Pokemon Showdown server package with `@pkmn/sim` and
+  `@pkmn/mods`, including explicit Champions and Regulation M-A mod loading.
+- Removed vulnerable, unused server-only dependency chains while preserving all
+  162 mechanics, session, advisor, API, CLI, and browser tests.
+- Added an MIT license, security policy, third-party notices, supported Node
+  versions, fresh-clone instructions, CI, and Dependabot configuration.
+- Documented that EZPE is unofficial and that its unauthenticated server is for
+  local use only.
+
 ## Current Snapshot
 
 EZPE is currently a local TypeScript application at version `0.1.0`. It can:

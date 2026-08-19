@@ -4,8 +4,15 @@ EZPE is a local learning project for exploring AI through Pokemon Champions batt
 
 The goal is to accept a structured battle state from Pokemon Champions Doubles/VGC and return a ranked list of the best legal actions. Accuracy comes first; the current browser screen is deliberately focused on rapid manual capture rather than visual polish or screenshot automation.
 
+> EZPE is an unofficial fan project and is not affiliated with Nintendo, Game
+> Freak, The Pokemon Company, Smogon, or Pokemon Showdown. See
+> [NOTICE.md](NOTICE.md) for attribution and third-party information.
+
 See [CHANGELOG.md](CHANGELOG.md) for the complete development history from the
 initial scaffold through the current battle workflow.
+
+Before changing the GitHub repository to public, follow the maintainer steps in
+[docs/public-release-checklist.md](docs/public-release-checklist.md).
 
 See [docs/pk-move-scoring-audit.md](docs/pk-move-scoring-audit.md) for the
 strategy audit that guides the current Champions-native scoring upgrade.
@@ -14,7 +21,33 @@ strategy audit that guides the current Champions-native scoring upgrade.
 
 The project has a validated battle-state contract, regulation and usage snapshots, accuracy-aware damage utilities, a single-turn Pokemon Showdown adapter, opponent-response ranking, an event-driven battle session, a browser team-setup flow, a terminal workflow, and a local Quick Capture screen.
 
-## Planned Commands
+## Requirements
+
+- Node.js 20.x, 22.x, or 24 and newer.
+- npm, included with Node.js.
+
+## Quick Start
+
+```bash
+git clone https://github.com/BHEAU-Projects/EZPE.git
+cd EZPE
+npm ci
+npm run dev
+```
+
+Open `http://127.0.0.1:4173` after the server starts. Run the verification
+commands before submitting a change:
+
+```bash
+npm run typecheck
+npm test
+npm audit --omit=dev
+```
+
+EZPE is intentionally local-only. Its server has no authentication or TLS and
+must not be exposed directly to the internet. See [SECURITY.md](SECURITY.md).
+
+## Commands
 
 ```bash
 npm run dev

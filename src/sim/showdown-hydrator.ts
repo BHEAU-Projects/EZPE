@@ -1,6 +1,3 @@
-import PokemonShowdown from "pokemon-showdown";
-import type { Battle } from "pokemon-showdown";
-
 import type {
   ActivePokemon,
   BattleState,
@@ -10,8 +7,7 @@ import type {
   TeamState
 } from "../domain/battle-state.js";
 import { mergeVolatileEffects, type VolatileEffect } from "../domain/battle-state.js";
-
-const { toID } = PokemonShowdown;
+import { toID, type Battle } from "./showdown-runtime.js";
 
 export interface HydratedPokemonSummary {
   side: PlayerSide;
@@ -171,7 +167,7 @@ function hydratePokemon(battle: Battle, state: BattleState): void {
       pokemon.fainted = pokemon.hp === 0;
       pokemon.faintQueued = false;
 
-      pokemon.status = observed.status === "healthy" ? "" : observed.status;
+      pokemon.status = toID(observed.status === "healthy" ? "" : observed.status);
       pokemon.statusState = battle.initEffectState({ id: pokemon.status, target: pokemon });
 
       if ("boosts" in observed) {

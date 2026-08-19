@@ -1,5 +1,3 @@
-import PokemonShowdown from "pokemon-showdown";
-
 import type {
   BattleState,
   HpMeasurement,
@@ -17,9 +15,9 @@ import {
   toShowdownCurrentHp,
   type HydratedBattleSummary
 } from "./showdown-hydrator.js";
+import { Battle as ShowdownBattle, toID } from "./showdown-runtime.js";
 
-const { Battle } = PokemonShowdown;
-type Battle = InstanceType<typeof Battle>;
+type Battle = InstanceType<typeof ShowdownBattle>;
 
 export { toShowdownCurrentHp } from "./showdown-hydrator.js";
 
@@ -328,7 +326,7 @@ function isFaintedHp(hp: HpMeasurement): boolean {
 }
 
 export function simulateSingleTurn(input: SingleTurnSimulationInput): SingleTurnSimulationResult {
-  const battle = new Battle({
+  const battle = new ShowdownBattle({
     formatid: input.formatId as never,
     seed: toShowdownSeed(input.seed),
     strictChoices: true
@@ -402,7 +400,7 @@ export function createHydratedBattleFromState(
   seed?: SingleTurnSimulationInput["seed"]
 ): Battle {
   const simulationState = normalizeBattleStateForShowdown(battleState);
-  const battle = new Battle({
+  const battle = new ShowdownBattle({
     formatid: getShowdownFormatIdForRegulation(simulationState.regulationId) as never,
     seed: toShowdownSeed(seed),
     strictChoices: true
@@ -1068,7 +1066,7 @@ function countMissesBySide(outcomes: ShowdownActionOutcome[]): Record<PlayerSide
 }
 
 function toCanonicalId(value: string): string {
-  return PokemonShowdown.toID(value);
+  return toID(value);
 }
 
 function sumDamageTakenBySide(damageEvents: ShowdownDamageEvent[], side: PlayerSide): number {

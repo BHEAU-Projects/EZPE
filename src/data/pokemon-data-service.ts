@@ -1,6 +1,5 @@
 import { Generations } from "@pkmn/data";
 import { Dex as PkmnDex, toID } from "@pkmn/dex";
-import PokemonShowdown from "pokemon-showdown";
 
 import type {
   BattleState,
@@ -19,8 +18,7 @@ import {
   regulationSnapshots,
   type RegulationSnapshot
 } from "./regulations.js";
-
-const { Dex: ShowdownDex, TeamValidator } = PokemonShowdown;
+import { Dex as ShowdownDex, TeamValidator } from "../sim/showdown-runtime.js";
 
 type TeamValidatorInstance = InstanceType<typeof TeamValidator>;
 type ValidatorTeam = NonNullable<Parameters<TeamValidatorInstance["validateTeam"]>[0]>;

@@ -1,5 +1,3 @@
-import PokemonShowdown from "pokemon-showdown";
-
 import {
   battleStateSchema,
   type ActivePokemon,
@@ -16,9 +14,8 @@ import {
   getShowdownFormatIdForRegulation
 } from "../sim/showdown-adapter.js";
 import { captureHydratedBattleState } from "../sim/showdown-hydrator.js";
+import { Dex } from "../sim/showdown-runtime.js";
 import type { ConfirmedEffect, ObservedAction, TurnReport } from "./turn-report.js";
-
-const { Dex } = PokemonShowdown;
 
 const weatherByShowdownId: Record<string, NonNullable<FieldState["weather"]>> = {
   raindance: "rain",
