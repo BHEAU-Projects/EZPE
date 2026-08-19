@@ -4,6 +4,12 @@ EZPE is a local learning project for exploring AI through Pokemon Champions batt
 
 The goal is to accept a structured battle state from Pokemon Champions Doubles/VGC and return a ranked list of the best legal actions. Accuracy comes first; the current browser screen is deliberately focused on rapid manual capture rather than visual polish or screenshot automation.
 
+See [CHANGELOG.md](CHANGELOG.md) for the complete development history from the
+initial scaffold through the current battle workflow.
+
+See [docs/pk-move-scoring-audit.md](docs/pk-move-scoring-audit.md) for the
+strategy audit that guides the current Champions-native scoring upgrade.
+
 ## Current Status
 
 The project has a validated battle-state contract, regulation and usage snapshots, accuracy-aware damage utilities, a single-turn Pokemon Showdown adapter, opponent-response ranking, an event-driven battle session, a browser team-setup flow, a terminal workflow, and a local Quick Capture screen.
@@ -147,3 +153,7 @@ The analyzer returns ranked actions rather than one unexplained answer. Each res
 3. Build a current-turn evaluator that ranks every legal action from a known board state.
 4. Add opponent-response simulation, then deeper search such as expectimax or Monte Carlo Tree Search.
 5. Validate recommendations against recorded games before adding screenshot or video capture.
+
+## Future Roadmap
+1. Optimization on looking through the plans. Current version on 3 Recommendations and 4 Opponent Scenario takes about 7-9 seconds to complete which is too long for actual gameplay.
+2. Support various unique pokemon ability like Ditto
