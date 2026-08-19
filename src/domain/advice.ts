@@ -69,6 +69,7 @@ export interface AdviceResult {
   debug: {
     scoreBreakdown: ScoreBreakdown;
     simulation: SingleTurnSimulationResult;
+    turnOrderSimulation: SingleTurnSimulationResult;
     opponentEvaluation: {
       expectedScore: number;
       worstCaseScore: number;

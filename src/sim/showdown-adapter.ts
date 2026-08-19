@@ -141,6 +141,7 @@ export interface ShowdownActionOutcome {
   pokemon: string;
   outcome: "moved" | "switched" | "denied" | "missed" | "failed" | "immune" | "fainted-before-action" | "not-observed";
   move?: string;
+  target?: string;
   reason?: string;
   order?: number;
 }
@@ -875,10 +876,16 @@ function parseActionOutcomes(
       continue;
     }
     if (line.startsWith("|move|")) {
-      const [, , label, move] = line.split("|");
+      const [, , label, move, target] = line.split("|");
       const parsed = parsePokemonLabel(label);
       lastMoverSlot = parsed.slot;
-      outcomes.set(parsed.slot, { ...parsed, outcome: "moved", move, order: ++actionOrder });
+      outcomes.set(parsed.slot, {
+        ...parsed,
+        outcome: "moved",
+        move,
+        ...(target ? { target } : {}),
+        order: ++actionOrder
+      });
       continue;
     }
     if (line.startsWith("|cant|")) {
@@ -897,7 +904,7 @@ function parseActionOutcomes(
       const [, , label] = line.split("|");
       const parsed = parsePokemonLabel(label);
       const existing = outcomes.get(parsed.slot);
-      outcomes.set(parsed.slot, { ...parsed, outcome: "missed", move: existing?.move });
+      outcomes.set(parsed.slot, { ...existing, ...parsed, outcome: "missed" });
       continue;
     }
     if (line.startsWith("|-fail|") && lastMoverSlot) {
@@ -914,6 +921,19 @@ function parseActionOutcomes(
       const [, , label] = line.split("|");
       const parsed = parsePokemonLabel(label);
       outcomes.set(parsed.slot, { ...parsed, outcome: "switched", order: ++actionOrder });
+      continue;
+    }
+    if (currentTurnStarted && line.startsWith("|faint|")) {
+      const [, , label] = line.split("|");
+      const parsed = parsePokemonLabel(label);
+      const existing = outcomes.get(parsed.slot);
+      if (!existing || existing.outcome === "not-observed") {
+        outcomes.set(parsed.slot, {
+          ...parsed,
+          outcome: "fainted-before-action",
+          order: ++actionOrder
+        });
+      }
     }
   }
 

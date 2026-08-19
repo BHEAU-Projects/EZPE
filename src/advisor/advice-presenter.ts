@@ -7,7 +7,11 @@ import type {
   TargetSlot
 } from "../domain/battle-state.js";
 import { pokemonDataService } from "../data/pokemon-data-service.js";
-import { createHydratedBattleFromState } from "../sim/showdown-adapter.js";
+import {
+  createHydratedBattleFromState,
+  type ShowdownActionOutcome,
+  type SingleTurnSimulationResult
+} from "../sim/showdown-adapter.js";
 import { generateActionPlansForSide } from "./move-ranker.js";
 
 export interface DamageEstimate {
@@ -67,6 +71,18 @@ export interface PresentedMovePp {
   maxPp: number;
 }
 
+export interface PresentedTurnStep {
+  order: number;
+  side: PlayerSide;
+  actorSlot: string;
+  actorSpecies: string;
+  kind: ShowdownActionOutcome["outcome"];
+  description: string;
+  moveName?: string;
+  targetSpecies?: string;
+  reason?: string;
+}
+
 interface TargetDamageEstimate extends DamageEstimate {
   targetSlot: string;
   targetSpecies: string;
@@ -88,6 +104,15 @@ export class AdvicePresenter {
 
   presentPlan(plan: ActionPlan): PresentedAction[] {
     return plan.actions.map((action) => this.presentAction(action));
+  }
+
+  presentTurnOrder(simulation: SingleTurnSimulationResult): PresentedTurnStep[] {
+    return [...simulation.summary.actionOutcomes]
+      .sort((left, right) =>
+        (left.order ?? Number.MAX_SAFE_INTEGER) - (right.order ?? Number.MAX_SAFE_INTEGER) ||
+        left.slot.localeCompare(right.slot)
+      )
+      .map((outcome, index) => presentTurnStep(this.battleState, outcome, index + 1));
   }
 
   findWorstEnemyDamagePlan(playerPlan: ActionPlan): PresentedWorstCase {
@@ -592,6 +617,96 @@ function formatNonPokemonTarget(targetSlot: TargetSlot, actorSpecies: string): s
     default:
       return "field";
   }
+}
+
+function presentTurnStep(
+  state: BattleState,
+  outcome: ShowdownActionOutcome,
+  order: number
+): PresentedTurnStep {
+  const actorSpecies = displayLoggedPokemon(state, outcome.slot, outcome.pokemon);
+  const target = outcome.target ? parseLoggedPokemon(outcome.target) : null;
+  const targetSpecies = target
+    ? displayLoggedPokemon(state, target.slot, target.pokemon)
+    : undefined;
+  const targetText = targetSpecies
+    ? ` on ${target?.slot === outcome.slot ? "itself" : targetSpecies}`
+    : "";
+  const moveText = outcome.move
+    ? `${actorSpecies} used ${outcome.move}${targetText}`
+    : actorSpecies;
+
+  let description: string;
+  switch (outcome.outcome) {
+    case "moved":
+      description = moveText;
+      break;
+    case "missed":
+      description = `${moveText} but missed`;
+      break;
+    case "failed":
+      description = `${moveText} but failed`;
+      break;
+    case "immune":
+      description = targetSpecies
+        ? `${moveText}, but ${targetSpecies} was immune`
+        : `${moveText} but had no effect`;
+      break;
+    case "switched":
+      description = `${actorSpecies} switched in`;
+      break;
+    case "denied":
+      description = formatDeniedAction(actorSpecies, outcome.reason);
+      break;
+    case "fainted-before-action":
+      description = `${actorSpecies} fainted before it could act`;
+      break;
+    default:
+      description = `${actorSpecies} did not act`;
+  }
+
+  return {
+    order,
+    side: outcome.side,
+    actorSlot: outcome.slot,
+    actorSpecies,
+    kind: outcome.outcome,
+    description,
+    ...(outcome.move ? { moveName: outcome.move } : {}),
+    ...(targetSpecies ? { targetSpecies } : {}),
+    ...(outcome.reason ? { reason: outcome.reason } : {})
+  };
+}
+
+function formatDeniedAction(actorSpecies: string, reason?: string): string {
+  switch (reason) {
+    case "flinch":
+      return `${actorSpecies} flinched`;
+    case "par":
+      return `${actorSpecies} was fully paralyzed`;
+    case "slp":
+      return `${actorSpecies} was asleep`;
+    case "frz":
+      return `${actorSpecies} was frozen solid`;
+    case "recharge":
+      return `${actorSpecies} had to recharge`;
+    case "truant":
+      return `${actorSpecies} could not act because of Truant`;
+    default:
+      return `${actorSpecies} could not act${reason ? ` (${reason})` : ""}`;
+  }
+}
+
+function parseLoggedPokemon(label: string): { slot: string; pokemon: string } | null {
+  const match = /^(p[12][ab]):\s*(.+)$/.exec(label);
+  return match ? { slot: match[1], pokemon: match[2] } : null;
+}
+
+function displayLoggedPokemon(state: BattleState, slot: string, fallback: string): string {
+  const side = slot.slice(0, 2) as PlayerSide;
+  return state.teams[side]?.active.find((pokemon) => pokemon.slot === slot)?.set.displayName ??
+    state.teams[side]?.active.find((pokemon) => pokemon.slot === slot)?.set.speciesId ??
+    fallback;
 }
 
 function average(values: number[]): number {

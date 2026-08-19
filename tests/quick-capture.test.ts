@@ -40,6 +40,7 @@ describe("Quick Capture server", () => {
     expect(battle.body).toContain("Opponent scenarios");
     expect(battle.body).toContain("scenario mean");
     expect(battle.body).toContain("Branch floor");
+    expect(battle.body).toContain("Expected turn order vs worst response");
     expect(battle.body).toContain("Highest-damage enemy line");
     expect(battle.body).toContain("Manual corrections");
     expect(battle.body).toContain("Observed Effects");
@@ -238,6 +239,13 @@ describe("Quick Capture server", () => {
               targetSpecies: expect.any(String)
             }
           ],
+          turnOrder: expect.arrayContaining([
+            expect.objectContaining({
+              order: expect.any(Number),
+              actorSpecies: expect.any(String),
+              description: expect.any(String)
+            })
+          ]),
           worstCase: {
             actions: expect.arrayContaining([
               expect.objectContaining({

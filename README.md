@@ -170,6 +170,7 @@ The analyzer returns ranked actions rather than one unexplained answer. Each res
 - `Branch floor`: the lowest sampled accuracy, critical-hit, damage-roll, and secondary-effect branch.
 - Confidence derived from ranking separation, mechanics-branch agreement, and available opponent information.
 - Short explanation tags for damage, KOs, healing, useful setup, order swings, action denial, item denial, residual pressure, ally synergy, risk, and wasted actions.
+- A numbered expected turn order against the worst evaluated opponent response, including targets, switches, misses, action denial, and KOs before action.
 - Per-target expected damage plus a separate highest-damage enemy line for fast risk review.
 
 ## Accuracy-First Roadmap

@@ -2,8 +2,15 @@ import { describe, expect, it } from "vitest";
 
 import { AdvicePresenter, presentPlayerMovePp } from "../src/advisor/advice-presenter.js";
 import type { ActionPlan } from "../src/domain/advice.js";
-import { singleTurnBattleState } from "../src/fixtures/single-turn-battle-state.js";
-import { buildShowdownChoiceFromLegalActions } from "../src/sim/showdown-adapter.js";
+import {
+  singleTurnBattleState,
+  singleTurnChoices
+} from "../src/fixtures/single-turn-battle-state.js";
+import {
+  buildShowdownChoiceFromLegalActions,
+  createSingleTurnSimulationInputFromBattleState,
+  simulateSingleTurn
+} from "../src/sim/showdown-adapter.js";
 
 function planWithMoves(firstMove: string, secondMove: string): ActionPlan {
   const actions: ActionPlan["actions"] = [
@@ -108,6 +115,33 @@ describe("advice presentation", () => {
       { moveName: "Tackle", moveType: "normal", moveSource: "confirmed" },
       { moveName: "Scratch", moveType: "normal", moveSource: "predicted" }
     ]);
+  });
+
+  it("presents moves, targets, and flinches in simulated turn order", () => {
+    const state = structuredClone(singleTurnBattleState);
+    state.teams.p1.active[0].set.moveIds = ["fakeout", "protect"];
+    const simulation = simulateSingleTurn({
+      ...createSingleTurnSimulationInputFromBattleState(state, {
+        ...singleTurnChoices,
+        p1Choice: "move fakeout 1, move protect"
+      }),
+      seed: [1, 2, 3, 4]
+    });
+
+    const steps = new AdvicePresenter(state).presentTurnOrder(simulation);
+    const fakeOut = steps.find((step) => step.moveName === "Fake Out");
+    const flinch = steps.find((step) => step.kind === "denied" && step.reason === "flinch");
+
+    expect(fakeOut).toMatchObject({
+      actorSpecies: "Pikachu",
+      targetSpecies: "Squirtle",
+      description: "Pikachu used Fake Out on Squirtle"
+    });
+    expect(flinch).toMatchObject({
+      actorSpecies: "Squirtle",
+      description: "Squirtle flinched"
+    });
+    expect(fakeOut!.order).toBeLessThan(flinch!.order);
   });
 
   it("includes misses and critical-hit probability in estimates", () => {

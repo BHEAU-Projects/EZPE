@@ -116,6 +116,7 @@ function rankPayload(session: BattleSession, top: number, maxOpponentPlans: numb
   const presentedResults = results.slice(0, top).map((result) => ({
     rank: result.rank,
     actions: presenter.presentPlan(result.actionPlan),
+    turnOrder: presenter.presentTurnOrder(result.debug.turnOrderSimulation),
     worstCase: presenter.findWorstEnemyDamagePlan(result.actionPlan),
     score: result.score,
     confidence: result.confidence,

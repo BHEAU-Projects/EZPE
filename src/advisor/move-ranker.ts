@@ -65,6 +65,12 @@ export function rankMoves(battleState: BattleState, input: RankMovesInput): Advi
     const worstBranch = worstScenario.branches.reduce((worst, branch) =>
       branch.scoredOutcome.score < worst.scoredOutcome.score ? branch : worst
     );
+    const representativeBranch = worstScenario.branches.reduce((nearest, branch) =>
+      Math.abs(branch.scoredOutcome.score - worstScenario.mechanicsExpectedScore) <
+      Math.abs(nearest.scoredOutcome.score - worstScenario.mechanicsExpectedScore)
+        ? branch
+        : nearest
+    );
     const scores = allBranches.map((branch) => branch.scoredOutcome.score);
     const scenarioMeanScore = average(scenarios.map((scenario) => scenario.mechanicsExpectedScore));
     const mechanicsExpectedScore = worstScenario.mechanicsExpectedScore;
@@ -79,6 +85,7 @@ export function rankMoves(battleState: BattleState, input: RankMovesInput): Advi
       actionPlan,
       score: aggregateScore,
       simulation: worstBranch.simulation,
+      turnOrderSimulation: representativeBranch.simulation,
       breakdown: worstBranch.scoredOutcome.breakdown,
       explanationTags: worstBranch.scoredOutcome.explanationTags,
       outcomeSummary: `mechanics expectation ${roundScore(mechanicsExpectedScore)}, scenario mean ${roundScore(scenarioMeanScore)}, worst response ${roundScore(worstResponseScore)}; ${worstBranch.scoredOutcome.outcomeSummary}`,
@@ -133,6 +140,7 @@ export function rankMoves(battleState: BattleState, input: RankMovesInput): Advi
       debug: {
         scoreBreakdown: result.breakdown,
         simulation: result.simulation,
+        turnOrderSimulation: result.turnOrderSimulation,
         opponentEvaluation: result.opponentEvaluation
       }
     };

@@ -287,6 +287,16 @@ milestone and linked to their checkpoint commits.
   immunities, Protect interaction, paralysis, sleep, and freeze behavior.
 - Verified 161 tests and a warm default ranking profile below two seconds.
 
+### Expected turn order
+
+- Added a numbered turn-order preview to every ranked recommendation.
+- Uses the mechanics branch nearest the expected score for the recommendation's
+  worst evaluated opponent response instead of presenting an arbitrary seed.
+- Shows move targets, switches, misses, failures, immunities, action denial such
+  as flinching, and Pokemon that faint before acting.
+- Preserved global action positions for misses and pre-action faints in Showdown
+  outcome summaries, with presenter, API, simulator, and browser regression tests.
+
 ## Current Snapshot
 
 EZPE is currently a local TypeScript application at version `0.1.0`. It can:

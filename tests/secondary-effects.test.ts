@@ -41,6 +41,7 @@ describe("secondary-aware Showdown outcomes", () => {
     const scored = scoreSingleTurnOutcome(simulation, "p1");
 
     expect(squirtleAction).toMatchObject({ outcome: "denied", reason: "flinch" });
+    expect(squirtleAction?.order).toEqual(expect.any(Number));
     expect(scored.breakdown.actionsDenied).toBe(1);
     expect(scored.explanationTags).toContain("action-denial");
   });
@@ -85,7 +86,9 @@ describe("secondary-aware Showdown outcomes", () => {
     expect(critical.summary.criticalHitsBySide.p2).toBeGreaterThan(0);
     expect(missed?.summary.actionOutcomes).toContainEqual(expect.objectContaining({
       slot: "p1a",
-      outcome: "missed"
+      outcome: "missed",
+      target: expect.stringContaining("p2a"),
+      order: expect.any(Number)
     }));
   });
 
@@ -103,7 +106,8 @@ describe("secondary-aware Showdown outcomes", () => {
 
     expect(simulation.summary.actionOutcomes).toContainEqual(expect.objectContaining({
       slot: "p2a",
-      outcome: "fainted-before-action"
+      outcome: "fainted-before-action",
+      order: expect.any(Number)
     }));
     expect(simulation.summary.movesBySide.p2.some((move) => move.slot === "p2a")).toBe(false);
   });
