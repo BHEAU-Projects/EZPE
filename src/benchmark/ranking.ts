@@ -58,11 +58,6 @@ const benchmarkSeeds: SimulationSeed[] = [
   [29, 30, 31, 32]
 ];
 
-const benchmarkInput: RankMovesInput = {
-  maxOpponentPlans: 4,
-  seeds: benchmarkSeeds
-};
-
 export function createBenchmarkPositions(): BenchmarkPosition[] {
   const simple = structuredClone(singleTurnBattleState);
   markFainted(simple, "p1b");
@@ -190,7 +185,7 @@ function createPosition(
     name,
     state,
     input: {
-      maxOpponentPlans: benchmarkInput.maxOpponentPlans,
+      maxOpponentPlans: 4,
       seeds: benchmarkSeeds.map((seed) => [...seed] as SimulationSeed)
     },
     createNextTurnState() {
