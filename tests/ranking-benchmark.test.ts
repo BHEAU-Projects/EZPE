@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   createBenchmarkPositions,
+  formatBenchmarkOutput,
   runBenchmarkSample,
   summarizeBenchmarkPosition
 } from "../src/benchmark/ranking.js";
@@ -67,5 +68,39 @@ describe("ranking benchmark positions and modes", () => {
     expect(summary.p50Ms).toBeGreaterThanOrEqual(summary.minMs);
     expect(summary.p50Ms).toBeLessThanOrEqual(summary.maxMs);
     expect(summary).not.toHaveProperty("p95Ms");
+  });
+
+  it("reports p95 for repeated runs", () => {
+    const position = createBenchmarkPositions()[0];
+    const lightweightPosition = {
+      ...position,
+      input: {
+        maxOpponentPlans: 1,
+        seeds: [position.input.seeds![0]]
+      }
+    };
+
+    const summary = summarizeBenchmarkPosition(lightweightPosition, "identical-warm", 20);
+
+    expect(summary.p95Ms).toBeDefined();
+    expect(summary.p95Ms).toBeGreaterThanOrEqual(summary.p50Ms);
+  });
+
+  it("formats environment and measurement columns for stdout", () => {
+    const summary = summarizeBenchmarkPosition(
+      createBenchmarkPositions()[0],
+      "cold",
+      1
+    );
+
+    const output = formatBenchmarkOutput([summary], {
+      node: "20.0.0",
+      platform: "test-platform",
+      architecture: "test-arch"
+    });
+
+    expect(output).toContain("environment node=20.0.0 platform=test-platform arch=test-arch");
+    expect(output).toContain("requests/sample hits/sample misses/sample executions/sample hit_rate");
+    expect(output).toContain("simple cold 1");
   });
 });
