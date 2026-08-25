@@ -32,6 +32,11 @@ describe("ranking benchmark positions and modes", () => {
     const cold = runBenchmarkSample(position, "cold");
     const warm = runBenchmarkSample(position, "identical-warm");
     const changed = runBenchmarkSample(position, "changed-next-turn");
+    const nextTurn = position.createNextTurnState();
+
+    expect(nextTurn.turnNumber).toBe(position.state.turnNumber + 1);
+    expect(nextTurn.teams.p2.active[0].hp).toEqual({ unit: "percent", percent: 48 });
+    expect(nextTurn.teams.p1.active[0].status).toBe("par");
 
     expect(cold.metrics).toMatchObject({
       simulationRequests: 288,
