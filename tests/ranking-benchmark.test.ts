@@ -70,6 +70,46 @@ describe("ranking benchmark positions and modes", () => {
     expect(summary).not.toHaveProperty("p95Ms");
   });
 
+  it("executes the branch-heavy workload in every benchmark mode", () => {
+    const position = createBenchmarkPositions()[2];
+    const lightweightPosition = {
+      ...position,
+      input: {
+        maxOpponentPlans: 1,
+        seeds: [position.input.seeds![0]]
+      }
+    };
+
+    const cold = runBenchmarkSample(lightweightPosition, "cold");
+    const warm = runBenchmarkSample(lightweightPosition, "identical-warm");
+    const changed = runBenchmarkSample(lightweightPosition, "changed-next-turn");
+
+    expect(cold.metrics).toMatchObject({
+      playerPlanCount: 15,
+      opponentPlanCount: 1,
+      seedCount: 1,
+      simulationRequests: 15,
+      cacheHits: 0,
+      cacheMisses: 15,
+      showdownExecutions: 15,
+      cacheHitRate: 0
+    });
+    expect(warm.metrics).toMatchObject({
+      simulationRequests: 15,
+      cacheHits: 15,
+      cacheMisses: 0,
+      showdownExecutions: 0,
+      cacheHitRate: 1
+    });
+    expect(changed.metrics).toMatchObject({
+      simulationRequests: 15,
+      cacheHits: 0,
+      cacheMisses: 15,
+      showdownExecutions: 15,
+      cacheHitRate: 0
+    });
+  });
+
   it("reports p95 for repeated runs", () => {
     const position = createBenchmarkPositions()[0];
     const lightweightPosition = {
