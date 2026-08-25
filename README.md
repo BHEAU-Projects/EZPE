@@ -74,6 +74,9 @@ The default is five independent samples per position and mode. Use `--runs 20`
 for more meaningful before/after timing comparisons; p95 is reported only when
 at least 20 samples are requested. Fixture construction, cache priming, and
 next-turn state application are outside the measured ranking interval.
+Measured timings include the benchmark's cache and counter instrumentation, so
+use them for consistent comparisons rather than as raw uninstrumented
+`rankMoves()` latency.
 
 The benchmark reports three positions:
 
