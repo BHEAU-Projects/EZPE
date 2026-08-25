@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   rankMoves,
@@ -55,6 +55,22 @@ describe("ranking measurement runtime", () => {
       cacheHitRate: 1
     });
     expect(resetCold).toMatchObject(cold);
+  });
+
+  it("bypasses measurement hooks for an unmeasured runtime", () => {
+    const runtime = createRankingRuntime();
+    const beginMeasurement = vi.spyOn(runtime, "beginMeasurement");
+    const recordPlanCounts = vi.spyOn(runtime, "recordPlanCounts");
+    const recordSimulationRequest = vi.spyOn(runtime, "recordSimulationRequest");
+    const finishMeasurement = vi.spyOn(runtime, "finishMeasurement");
+
+    rankMovesWithRuntime(singleTurnBattleState, focusedInput, runtime);
+
+    expect(beginMeasurement).not.toHaveBeenCalled();
+    expect(recordPlanCounts).not.toHaveBeenCalled();
+    expect(recordSimulationRequest).not.toHaveBeenCalled();
+    expect(finishMeasurement).not.toHaveBeenCalled();
+    expect(runtime.lastMeasurement).toBeUndefined();
   });
 
   it("treats a changed battle state as a new simulation-cache workload", () => {

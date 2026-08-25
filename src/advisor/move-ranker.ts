@@ -20,10 +20,10 @@ import { scoreSingleTurnOutcome } from "./scoring.js";
 import { generateLegalActions } from "./legal-action-generator.js";
 
 const maxSimulationCacheEntries = 2_000;
-const defaultRankingRuntime = createRankingRuntime();
+const defaultRankingCache: RankingRuntime["cache"] = new Map();
 
 export function rankMoves(battleState: BattleState, input: RankMovesInput): AdviceResult[] {
-  return rankMovesWithRuntime(battleState, input, defaultRankingRuntime);
+  return rankMovesCore(battleState, input, defaultRankingCache);
 }
 
 /** @internal Benchmark and deterministic instrumentation seam. */
@@ -32,17 +32,31 @@ export function rankMovesWithRuntime(
   input: RankMovesInput,
   runtime: RankingRuntime
 ): AdviceResult[] {
+  if (!runtime.measure) return rankMovesCore(battleState, input, runtime.cache);
+
   runtime.beginMeasurement();
+  try {
+    return rankMovesCore(battleState, input, runtime.cache, runtime);
+  } finally {
+    runtime.finishMeasurement();
+  }
+}
+
+function rankMovesCore(
+  battleState: BattleState,
+  input: RankMovesInput,
+  cache: RankingRuntime["cache"],
+  measurementRuntime?: RankingRuntime
+): AdviceResult[] {
   const opponentSide = battleState.playerSide === "p1" ? "p2" : "p1";
   if (!hasLivingActive(battleState, battleState.playerSide) || !hasLivingActive(battleState, opponentSide)) {
-    runtime.finishMeasurement();
     return [];
   }
 
   const actionPlans = generateActionPlansForSide(battleState, battleState.playerSide);
   const opponentPlans = getOpponentPlans(battleState, input);
   const seeds = getSimulationSeeds(input);
-  runtime.recordPlanCounts(actionPlans.length, opponentPlans.length, seeds.length);
+  measurementRuntime?.recordPlanCounts(actionPlans.length, opponentPlans.length, seeds.length);
   const scoringConfig = scoringConfigStore.get();
   const stateCacheKey = JSON.stringify(battleState);
   const scoredResults = actionPlans.map((actionPlan) => {
@@ -55,7 +69,8 @@ export function rankMovesWithRuntime(
           input,
           seed,
           stateCacheKey,
-          runtime
+          cache,
+          measurementRuntime
         );
         return {
           opponentPlan,
@@ -163,7 +178,6 @@ export function rankMovesWithRuntime(
     };
   });
 
-  runtime.finishMeasurement();
   return results;
 }
 
@@ -215,7 +229,8 @@ function simulateActionPlan(
   input: RankMovesInput,
   seed: SimulationSeed,
   stateCacheKey: string,
-  runtime: RankingRuntime
+  cache: RankingRuntime["cache"],
+  measurementRuntime?: RankingRuntime
 ) {
   const choices = buildSingleTurnChoices(
     battleState.playerSide,
@@ -226,13 +241,13 @@ function simulateActionPlan(
   const simulationInput = createSingleTurnSimulationInputFromBattleState(battleState, choices);
 
   const cacheKey = `${stateCacheKey}|${actionPlan.showdownChoice}|${opponentChoice}|${seed.join(",")}`;
-  const cached = runtime.cache.get(cacheKey);
-  runtime.recordSimulationRequest(cached !== undefined);
+  const cached = cache.get(cacheKey);
+  measurementRuntime?.recordSimulationRequest(cached !== undefined);
   if (cached !== undefined) return cached;
   const simulation = simulateSingleTurn({ ...simulationInput, seed });
-  runtime.cache.set(cacheKey, simulation);
-  if (runtime.cache.size > maxSimulationCacheEntries) {
-    runtime.cache.delete(runtime.cache.keys().next().value!);
+  cache.set(cacheKey, simulation);
+  if (cache.size > maxSimulationCacheEntries) {
+    cache.delete(cache.keys().next().value!);
   }
   return simulation;
 }
