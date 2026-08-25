@@ -13,7 +13,6 @@ import {
   simulateSingleTurn
 } from "../sim/showdown-adapter.js";
 import {
-  createRankingRuntime,
   type RankingRuntime
 } from "./ranking-runtime.js";
 import { scoreSingleTurnOutcome } from "./scoring.js";
