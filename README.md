@@ -79,8 +79,7 @@ The benchmark reports three positions:
 
 - `simple`: the existing sample state with one active Pokemon on each side
   marked fainted, exercising the supported reduced-side case;
-- `normal`: the existing two-active sample state and the current four-opponent-
-  plan profile;
+- `normal`: the existing two-active sample state and the current four-opponent-plan profile;
 - `branch-heavy`: the same state with one healthy bench Pokemon per side,
   creating switch branches while keeping `maxOpponentPlans` at four.
 
