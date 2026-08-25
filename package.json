@@ -13,7 +13,8 @@
     "dev": "tsx src/api/server.ts --sample",
     "quick": "tsx src/api/server.ts",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --config vitest.config.ts --passWithNoTests"
+    "test": "vitest run --config vitest.config.ts --passWithNoTests",
+    "benchmark:ranking": "tsx src/benchmark/ranking.ts"
   },
   "keywords": [
     "pokemon",
