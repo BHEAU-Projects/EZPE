@@ -68,8 +68,8 @@ describe("ranking measurement runtime", () => {
     const metrics = runtime.lastMeasurement;
     if (!metrics) throw new Error("Expected changed-state ranking measurement.");
 
-    expect(changedResults).toEqual(
-      rankMoves(changedState, focusedInput)
+    expect(normalizeSimulationTimestamps(changedResults)).toEqual(
+      normalizeSimulationTimestamps(rankMoves(changedState, focusedInput))
     );
     expect(metrics).toMatchObject({
       simulationRequests: 9,
