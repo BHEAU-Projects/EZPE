@@ -24,7 +24,9 @@ describe("ranking measurement runtime", () => {
     const ordinary = rankMoves(singleTurnBattleState, focusedInput);
     const runtime = createRankingRuntime({ measure: true });
 
-    expect(runMeasured(runtime).results).toEqual(ordinary);
+    expect(normalizeSimulationTimestamps(runMeasured(runtime).results)).toEqual(
+      normalizeSimulationTimestamps(ordinary)
+    );
   });
 
   it("distinguishes cold, identical warm, and reset measurements", () => {
@@ -80,3 +82,16 @@ describe("ranking measurement runtime", () => {
     expect(metrics.showdownExecutions).toBe(metrics.cacheMisses);
   });
 });
+
+function normalizeSimulationTimestamps(value: unknown): unknown {
+  if (typeof value === "string") {
+    return /^\|t:\|\d+$/.test(value) ? "|t:|<runtime-timestamp>" : value;
+  }
+  if (Array.isArray(value)) return value.map(normalizeSimulationTimestamps);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [key, normalizeSimulationTimestamps(entry)])
+    );
+  }
+  return value;
+}
