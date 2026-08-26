@@ -12,13 +12,41 @@ import {
   createSingleTurnSimulationInputFromBattleState,
   simulateSingleTurn
 } from "../sim/showdown-adapter.js";
+import {
+  type RankingRuntime
+} from "./ranking-runtime.js";
 import { scoreSingleTurnOutcome } from "./scoring.js";
 import { generateLegalActions } from "./legal-action-generator.js";
 
-const simulationCache = new Map<string, ReturnType<typeof simulateSingleTurn>>();
 const maxSimulationCacheEntries = 2_000;
+const defaultRankingCache: RankingRuntime["cache"] = new Map();
 
 export function rankMoves(battleState: BattleState, input: RankMovesInput): AdviceResult[] {
+  return rankMovesCore(battleState, input, defaultRankingCache);
+}
+
+/** @internal Benchmark and deterministic instrumentation seam. */
+export function rankMovesWithRuntime(
+  battleState: BattleState,
+  input: RankMovesInput,
+  runtime: RankingRuntime
+): AdviceResult[] {
+  if (!runtime.measure) return rankMovesCore(battleState, input, runtime.cache);
+
+  runtime.beginMeasurement();
+  try {
+    return rankMovesCore(battleState, input, runtime.cache, runtime);
+  } finally {
+    runtime.finishMeasurement();
+  }
+}
+
+function rankMovesCore(
+  battleState: BattleState,
+  input: RankMovesInput,
+  cache: RankingRuntime["cache"],
+  measurementRuntime?: RankingRuntime
+): AdviceResult[] {
   const opponentSide = battleState.playerSide === "p1" ? "p2" : "p1";
   if (!hasLivingActive(battleState, battleState.playerSide) || !hasLivingActive(battleState, opponentSide)) {
     return [];
@@ -27,6 +55,7 @@ export function rankMoves(battleState: BattleState, input: RankMovesInput): Advi
   const actionPlans = generateActionPlansForSide(battleState, battleState.playerSide);
   const opponentPlans = getOpponentPlans(battleState, input);
   const seeds = getSimulationSeeds(input);
+  measurementRuntime?.recordPlanCounts(actionPlans.length, opponentPlans.length, seeds.length);
   const scoringConfig = scoringConfigStore.get();
   const stateCacheKey = JSON.stringify(battleState);
   const scoredResults = actionPlans.map((actionPlan) => {
@@ -38,7 +67,9 @@ export function rankMoves(battleState: BattleState, input: RankMovesInput): Advi
           opponentPlan.showdownChoice,
           input,
           seed,
-          stateCacheKey
+          stateCacheKey,
+          cache,
+          measurementRuntime
         );
         return {
           opponentPlan,
@@ -119,7 +150,7 @@ export function rankMoves(battleState: BattleState, input: RankMovesInput): Advi
   }
   const sortedResults = [...bestResultByPlan.values()].sort((a, b) => b.score - a.score);
 
-  return sortedResults.map((result, index) => {
+  const results = sortedResults.map((result, index) => {
     const nextBestScore = sortedResults[index + 1]?.score ?? result.score;
     const branchAgreement = calculateBranchAgreement(result, sortedResults);
     result.opponentEvaluation.branchAgreement = branchAgreement;
@@ -145,6 +176,8 @@ export function rankMoves(battleState: BattleState, input: RankMovesInput): Advi
       }
     };
   });
+
+  return results;
 }
 
 export function generateActionPlans(battleState: BattleState): ActionPlan[] {
@@ -194,7 +227,9 @@ function simulateActionPlan(
   opponentChoice: string,
   input: RankMovesInput,
   seed: SimulationSeed,
-  stateCacheKey: string
+  stateCacheKey: string,
+  cache: RankingRuntime["cache"],
+  measurementRuntime?: RankingRuntime
 ) {
   const choices = buildSingleTurnChoices(
     battleState.playerSide,
@@ -205,12 +240,13 @@ function simulateActionPlan(
   const simulationInput = createSingleTurnSimulationInputFromBattleState(battleState, choices);
 
   const cacheKey = `${stateCacheKey}|${actionPlan.showdownChoice}|${opponentChoice}|${seed.join(",")}`;
-  const cached = simulationCache.get(cacheKey);
-  if (cached) return cached;
+  const cached = cache.get(cacheKey);
+  measurementRuntime?.recordSimulationRequest(cached !== undefined);
+  if (cached !== undefined) return cached;
   const simulation = simulateSingleTurn({ ...simulationInput, seed });
-  simulationCache.set(cacheKey, simulation);
-  if (simulationCache.size > maxSimulationCacheEntries) {
-    simulationCache.delete(simulationCache.keys().next().value!);
+  cache.set(cacheKey, simulation);
+  if (cache.size > maxSimulationCacheEntries) {
+    cache.delete(cache.keys().next().value!);
   }
   return simulation;
 }

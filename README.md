@@ -56,9 +56,53 @@ npm run cli -- --sample
 npm run data:refresh:moves
 npm run typecheck
 npm test
+npm run benchmark:ranking
 ```
 
 Use `typecheck` and `test` after changing schemas, mechanics, simulation, or advisor behavior.
+
+## Ranking Benchmark
+
+Run the deterministic ranking benchmark locally:
+
+```bash
+npm run benchmark:ranking
+npm run benchmark:ranking -- --runs 20
+```
+
+The default is five independent samples per position and mode. Use `--runs 20`
+for more meaningful before/after timing comparisons; p95 is reported only when
+at least 20 samples are requested. Fixture construction, cache priming, and
+next-turn state application are outside the measured ranking interval.
+Measured timings include the benchmark's cache and counter instrumentation, so
+use them for consistent comparisons rather than as raw uninstrumented
+`rankMoves()` latency.
+
+The benchmark reports three positions:
+
+- `simple`: the existing sample state with one active Pokemon on each side
+  marked fainted, exercising the supported reduced-side case;
+- `normal`: the existing two-active sample state and the current four-opponent-plan profile;
+- `branch-heavy`: the same state with one healthy bench Pokemon per side,
+  creating switch branches while keeping `maxOpponentPlans` at four.
+
+Each position is measured independently in three modes: `cold` starts with a
+fresh cache; `identical-warm` primes the exact state and then measures it; and
+`changed-next-turn` primes the original state, applies a deterministic observed
+turn through the session flow, and measures the resulting next-turn state.
+`identical-warm` is a diagnostic cache-hit control, not a representative claim
+that normal turns leave the state unchanged; duplicate, retry, or refresh
+requests can legitimately reuse an identical state.
+Every measured sample gets a fresh cache runtime, so samples never warm one
+another.
+
+`requests/sample` counts all evaluated player-plan/opponent-plan/seed branches.
+`hits/sample` and `misses/sample` are simulation-cache lookups, while
+`executions/sample` counts actual Showdown simulations. They must satisfy
+`requests = hits + misses` and `executions = misses`. The hit rate, elapsed
+minimum/p50/maximum, and optional p95 should be interpreted together with the
+reported workload and environment information. The benchmark writes to stdout,
+uses no network, writes no result files, and is not a CI performance gate.
 
 ## Scoring Configuration
 
