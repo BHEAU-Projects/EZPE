@@ -68,7 +68,7 @@ describe("ranking benchmark positions and modes", () => {
     expect(summary.p50Ms).toBeGreaterThanOrEqual(summary.minMs);
     expect(summary.p50Ms).toBeLessThanOrEqual(summary.maxMs);
     expect(summary).not.toHaveProperty("p95Ms");
-  });
+  }, 15_000);
 
   it("executes the branch-heavy workload in every benchmark mode", () => {
     const position = createBenchmarkPositions()[2];

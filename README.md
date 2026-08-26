@@ -90,6 +90,9 @@ Each position is measured independently in three modes: `cold` starts with a
 fresh cache; `identical-warm` primes the exact state and then measures it; and
 `changed-next-turn` primes the original state, applies a deterministic observed
 turn through the session flow, and measures the resulting next-turn state.
+`identical-warm` is a diagnostic cache-hit control, not a representative claim
+that normal turns leave the state unchanged; duplicate, retry, or refresh
+requests can legitimately reuse an identical state.
 Every measured sample gets a fresh cache runtime, so samples never warm one
 another.
 
