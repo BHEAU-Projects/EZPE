@@ -21,6 +21,10 @@ describe("prepared ranking simulation input", () => {
     simulateSingleTurn({ ...secondInput, seed: [5, 6, 7, 8] });
 
     expect(secondInput.battleState).toBe(preparedState);
+    expect(secondInput.p1.team).not.toBe(firstInput.p1.team);
+    expect(secondInput.p1.team[0]).not.toBe(firstInput.p1.team[0]);
+    expect(secondInput.p2.team).not.toBe(firstInput.p2.team);
+    expect(secondInput.p2.team[0]).not.toBe(firstInput.p2.team[0]);
     expect(preparedState).toEqual(preparedStateBefore);
     expect(singleTurnBattleState).toEqual(callerStateBefore);
   });
