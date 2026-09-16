@@ -9,8 +9,10 @@ import { pokemonDataService } from "../data/pokemon-data-service.js";
 import { scoringConfigStore } from "../config/scoring-config.js";
 import {
   buildShowdownChoiceFromLegalActions,
-  createSingleTurnSimulationInputFromBattleState,
-  simulateSingleTurn
+  createSingleTurnSimulationInputFactory,
+  simulateSingleTurn,
+  type BattleStateSingleTurnChoices,
+  type SingleTurnSimulationInput
 } from "../sim/showdown-adapter.js";
 import {
   type RankingRuntime
@@ -20,6 +22,10 @@ import { generateLegalActions } from "./legal-action-generator.js";
 
 const maxSimulationCacheEntries = 2_000;
 const defaultRankingCache: RankingRuntime["cache"] = new Map();
+
+type SimulationInputFactory = (
+  choices: BattleStateSingleTurnChoices
+) => SingleTurnSimulationInput;
 
 export function rankMoves(battleState: BattleState, input: RankMovesInput): AdviceResult[] {
   return rankMovesCore(battleState, input, defaultRankingCache);
@@ -58,6 +64,11 @@ function rankMovesCore(
   measurementRuntime?.recordPlanCounts(actionPlans.length, opponentPlans.length, seeds.length);
   const scoringConfig = scoringConfigStore.get();
   const stateCacheKey = JSON.stringify(battleState);
+  let preparedSimulationInputFactory: SimulationInputFactory | undefined;
+  const getSimulationInput: SimulationInputFactory = (choices) => {
+    preparedSimulationInputFactory ??= createSingleTurnSimulationInputFactory(battleState);
+    return preparedSimulationInputFactory(choices);
+  };
   const scoredResults = actionPlans.map((actionPlan) => {
     const scenarios = opponentPlans.map((opponentPlan) => {
       const branches = seeds.map((seed) => {
@@ -69,6 +80,7 @@ function rankMovesCore(
           seed,
           stateCacheKey,
           cache,
+          getSimulationInput,
           measurementRuntime
         );
         return {
@@ -229,6 +241,7 @@ function simulateActionPlan(
   seed: SimulationSeed,
   stateCacheKey: string,
   cache: RankingRuntime["cache"],
+  createSimulationInput: SimulationInputFactory,
   measurementRuntime?: RankingRuntime
 ) {
   const choices = buildSingleTurnChoices(
@@ -237,12 +250,15 @@ function simulateActionPlan(
     opponentChoice,
     input
   );
-  const simulationInput = createSingleTurnSimulationInputFromBattleState(battleState, choices);
-
   const cacheKey = `${stateCacheKey}|${actionPlan.showdownChoice}|${opponentChoice}|${seed.join(",")}`;
   const cached = cache.get(cacheKey);
-  measurementRuntime?.recordSimulationRequest(cached !== undefined);
-  if (cached !== undefined) return cached;
+  if (cached !== undefined) {
+    measurementRuntime?.recordSimulationRequest(true);
+    return cached;
+  }
+
+  const simulationInput = createSimulationInput(choices);
+  measurementRuntime?.recordSimulationRequest(false);
   const simulation = simulateSingleTurn({ ...simulationInput, seed });
   cache.set(cacheKey, simulation);
   if (cache.size > maxSimulationCacheEntries) {
