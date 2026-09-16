@@ -56,6 +56,10 @@ export interface BattleStateSingleTurnChoices {
   p2TeamPreviewChoice?: string;
 }
 
+type SingleTurnSimulationInputFactory = (
+  choices: BattleStateSingleTurnChoices
+) => SingleTurnSimulationInput;
+
 export interface ShowdownMoveEvent {
   side: PlayerSide;
   slot: string;
@@ -253,9 +257,18 @@ export function createSingleTurnSimulationInputFromBattleState(
   battleState: BattleState,
   choices: BattleStateSingleTurnChoices
 ): SingleTurnSimulationInput {
+  return createSingleTurnSimulationInputFactory(battleState)(choices);
+}
+
+/** @internal Ranking-only seam for reusing normalized state within one invocation. */
+export function createSingleTurnSimulationInputFactory(
+  battleState: BattleState
+): SingleTurnSimulationInputFactory {
   const simulationState = normalizeBattleStateForShowdown(battleState);
-  return {
-    formatId: getShowdownFormatIdForRegulation(simulationState.regulationId),
+  const formatId = getShowdownFormatIdForRegulation(simulationState.regulationId);
+
+  return (choices) => ({
+    formatId,
     battleState: simulationState,
     p1: {
       name: "Player 1",
@@ -269,7 +282,7 @@ export function createSingleTurnSimulationInputFromBattleState(
       teamPreviewChoice: choices.p2TeamPreviewChoice ?? defaultTeamPreviewChoice(simulationState.teams.p2.active.length),
       turnChoice: choices.p2Choice
     }
-  };
+  });
 }
 
 export function buildShowdownChoiceFromLegalActions(
